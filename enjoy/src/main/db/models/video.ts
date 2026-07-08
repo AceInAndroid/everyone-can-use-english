@@ -18,7 +18,6 @@ import {
   Recording,
   Speech,
   Transcription,
-  UserSetting,
 } from "@main/db/models";
 import settings from "@main/settings";
 import { AudioFormats, MIME_TYPES, VideoFormats } from "@/constants";
@@ -28,7 +27,6 @@ import fs from "fs-extra";
 import { t } from "i18next";
 import mainWindow from "@main/window";
 import log from "@main/logger";
-import storage from "@main/storage";
 import Ffmpeg from "@main/ffmpeg";
 import { Client } from "@/api";
 import startCase from "lodash/startCase";
@@ -203,7 +201,7 @@ export class Video extends Model<Video> {
     }
   }
 
-  // generate cover and upload
+  // generate a local cover image without remote storage.
   async generateCover() {
     if (this.coverUrl) return;
 
@@ -213,34 +211,14 @@ export class Video extends Model<Video> {
       path.join(settings.cachePath(), `${Date.now()}.png`)
     );
     const hash = await hashFile(coverFile, { algo: "md5" });
-    const finalFile = path.join(settings.cachePath(), `${hash}.png`);
-    fs.renameSync(coverFile, finalFile);
-
-    storage.put(hash, finalFile, "image/png").then((result) => {
-      logger.debug("cover upload result:", result.data);
-      if (result.data.success) {
-        this.update({ coverUrl: storage.getUrl(hash) });
-      }
+    const dir = path.join(settings.userDataPath(), "videos");
+    fs.ensureDirSync(dir);
+    const filename = `${hash}.cover.png`;
+    const finalFile = path.join(dir, filename);
+    fs.moveSync(coverFile, finalFile, { overwrite: true });
+    await this.update({
+      coverUrl: `enjoy://${path.posix.join("library", "videos", filename)}`,
     });
-  }
-
-  async upload(force: boolean = false) {
-    if (this.isUploaded && !force) return;
-
-    return storage
-      .put(this.md5, this.filePath, this.mimeType)
-      .then((result) => {
-        logger.debug("upload result:", result.data);
-        if (result.data.success) {
-          this.update({ uploadedAt: new Date() });
-        } else {
-          throw new Error(result.data);
-        }
-      })
-      .catch((err) => {
-        logger.error("upload failed:", err.message);
-        throw err;
-      });
   }
 
   async sync() {
@@ -248,13 +226,14 @@ export class Video extends Model<Video> {
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger,
     });
 
     return webApi.syncVideo(this.toJSON()).then(() => {
-      const now = new Date();
-      this.update({ syncedAt: now, updatedAt: now });
+      return this.update(
+        { syncedAt: new Date() },
+        { hooks: false, silent: true }
+      );
     });
   }
 
@@ -317,7 +296,6 @@ export class Video extends Model<Video> {
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger: log.scope("video/cleanupFile"),
     });
 
@@ -369,7 +347,7 @@ export class Video extends Model<Video> {
     }
 
     // Generate ID
-    const userId = settings.getSync("user.id");
+    const userId = settings.localStorageNamespace();
     const id = uuidv5(`${userId}/${md5}`, uuidv5.URL);
     logger.debug("Generated ID:", id);
 

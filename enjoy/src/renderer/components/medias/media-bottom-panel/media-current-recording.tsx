@@ -17,14 +17,6 @@ import { extractFrequencies } from "@/utils";
 import WaveSurfer from "wavesurfer.js";
 import Regions from "wavesurfer.js/dist/plugins/regions";
 import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogCancel,
-  AlertDialogAction,
   Button,
   DropdownMenu,
   DropdownMenuItem,
@@ -41,7 +33,6 @@ import {
   GitCompareIcon,
   PauseIcon,
   PlayIcon,
-  Share2Icon,
   GaugeCircleIcon,
   ChevronDownIcon,
   MoreHorizontalIcon,
@@ -71,13 +62,11 @@ export const MediaCurrentRecording = () => {
     wavesurfer,
     zoomRatio,
     editingRegion,
-    currentSegment,
-    createSegment,
     currentTime: mediaCurrentTime,
     caption,
     toggleRegion,
   } = useContext(MediaShadowProviderContext);
-  const { webApi, EnjoyApp } = useContext(AppSettingsProviderContext);
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { currentHotkeys } = useContext(HotKeysSettingsProviderContext);
   const [player, setPlayer] = useState(null);
   const [regions, setRegions] = useState<Regions | null>(null);
@@ -85,7 +74,6 @@ export const MediaCurrentRecording = () => {
 
   const [detailIsOpen, setDetailIsOpen] = useState(false);
   const [isComparing, setIsComparing] = useState(false);
-  const [isSharing, setIsSharing] = useState(false);
   const [isSelectingRegion, setIsSelectingRegion] = useState(false);
 
   const [frequencies, setFrequencies] = useState<number[]>([]);
@@ -189,53 +177,6 @@ export const MediaCurrentRecording = () => {
       setIsComparing(true);
       renderComparingPitchContour();
     }
-  };
-
-  const handleShare = async () => {
-    if (!currentRecording) return;
-
-    if (!currentRecording.isSynced) {
-      try {
-        await EnjoyApp.recordings.sync(currentRecording.id);
-      } catch (error) {
-        toast.error(t("shareFailed"), { description: error.message });
-        return;
-      }
-    }
-    if (!currentRecording.uploadedAt) {
-      try {
-        await EnjoyApp.recordings.upload(currentRecording.id);
-      } catch (error) {
-        toast.error(t("shareFailed"), { description: error.message });
-        return;
-      }
-    }
-
-    try {
-      const segment = currentSegment || (await createSegment());
-      if (!segment) throw new Error("Failed to create segment");
-
-      await EnjoyApp.segments.sync(segment.id);
-    } catch (error) {
-      toast.error(t("shareFailed"), { description: error.message });
-      return;
-    }
-
-    webApi
-      .createPost({
-        targetId: currentRecording.id,
-        targetType: "Recording",
-      })
-      .then(() => {
-        toast.success(t("sharedSuccessfully"), {
-          description: t("sharedRecording"),
-        });
-      })
-      .catch((error) => {
-        toast.error(t("shareFailed"), {
-          description: error.message,
-        });
-      });
   };
 
   const handleDownload = () => {
@@ -562,15 +503,6 @@ export const MediaCurrentRecording = () => {
       asChild: false,
     },
     {
-      id: "media-share-button",
-      name: "share",
-      label: t("share"),
-      icon: Share2Icon,
-      active: isSharing,
-      onClick: () => setIsSharing(true),
-      asChild: false,
-    },
-    {
       id: "media-download-button",
       name: "download",
       label: t("download"),
@@ -687,23 +619,6 @@ export const MediaCurrentRecording = () => {
           </DropdownMenu>
         )}
       </div>
-
-      <AlertDialog open={isSharing} onOpenChange={setIsSharing}>
-        <AlertDialogContent aria-describedby={undefined}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("shareRecording")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("areYouSureToShareThisRecordingToCommunity")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button onClick={handleShare}>{t("share")}</Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <Sheet open={detailIsOpen} onOpenChange={(open) => setDetailIsOpen(open)}>
         <SheetContent

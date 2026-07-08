@@ -17,7 +17,6 @@ import {
   Recording,
   Speech,
   Transcription,
-  UserSetting,
   Video,
 } from "@main/db/models";
 import settings from "@main/settings";
@@ -28,7 +27,6 @@ import fs from "fs-extra";
 import { t } from "i18next";
 import mainWindow from "@main/window";
 import log from "@main/logger";
-import storage from "@main/storage";
 import Ffmpeg from "@main/ffmpeg";
 import { Client } from "@/api";
 import startCase from "lodash/startCase";
@@ -208,37 +206,19 @@ export class Audio extends Model<Audio> {
     }
   }
 
-  async upload(force: boolean = false) {
-    if (this.isUploaded && !force) return;
-
-    return storage
-      .put(this.md5, this.filePath, this.mimeType)
-      .then((result) => {
-        logger.debug("upload result:", result.data);
-        if (result.data.success) {
-          this.update({ uploadedAt: new Date() });
-        } else {
-          throw new Error(result.data);
-        }
-      })
-      .catch((err) => {
-        logger.error("upload failed:", err.message);
-        throw err;
-      });
-  }
-
   async sync() {
     if (this.isSynced) return;
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger: log.scope("audio/sync"),
     });
 
     return webApi.syncAudio(this.toJSON()).then(() => {
-      const now = new Date();
-      this.update({ syncedAt: now, updatedAt: now });
+      return this.update(
+        { syncedAt: new Date() },
+        { hooks: false, silent: true }
+      );
     });
   }
 
@@ -301,7 +281,6 @@ export class Audio extends Model<Audio> {
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger: log.scope("audio/cleanupFile"),
     });
 
@@ -352,7 +331,7 @@ export class Audio extends Model<Audio> {
     }
 
     // Generate ID
-    const userId = settings.getSync("user.id");
+    const userId = settings.localStorageNamespace();
     const id = uuidv5(`${userId}/${md5}`, uuidv5.URL);
     logger.debug("Generated ID:", id);
 

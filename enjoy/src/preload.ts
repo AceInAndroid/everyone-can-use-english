@@ -199,13 +199,6 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     }) => {
       return ipcRenderer.invoke("view-resize", bounds);
     },
-    loadCommunity: (
-      url: string,
-      bounds: { x: number; y: number; width: number; height: number },
-      options?: { navigatable?: boolean; accessToken?: string }
-    ) => {
-      return ipcRenderer.invoke("view-load-community", url, bounds, options);
-    },
     onViewState: (
       callback: (
         event: IpcRendererEvent,
@@ -363,9 +356,6 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     destroy: (id: string) => {
       return ipcRenderer.invoke("audios-destroy", id);
     },
-    upload: (id: string) => {
-      return ipcRenderer.invoke("audios-upload", id);
-    },
     crop: (id: string, params: { startTime: number; endTime: number }) => {
       return ipcRenderer.invoke("audios-crop", id, params);
     },
@@ -391,9 +381,6 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     },
     destroy: (id: string) => {
       return ipcRenderer.invoke("videos-destroy", id);
-    },
-    upload: (id: string) => {
-      return ipcRenderer.invoke("videos-upload", id);
     },
     crop: (id: string, params: { startTime: number; endTime: number }) => {
       return ipcRenderer.invoke("videos-crop", id, params);
@@ -431,9 +418,6 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     },
     destroyBulk: (where: any, options?: any) => {
       return ipcRenderer.invoke("recordings-destroy-bulk", where, options);
-    },
-    upload: (id: string) => {
-      return ipcRenderer.invoke("recordings-upload", id);
     },
     stats: (params: { from: string; to: string }) => {
       return ipcRenderer.invoke("recordings-stats", params);
@@ -797,9 +781,6 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     },
     destroy: (id: string) => {
       return ipcRenderer.invoke("documents-destroy", id);
-    },
-    upload: (id: string) => {
-      return ipcRenderer.invoke("documents-upload", id);
     },
     cleanUp: () => {
       return ipcRenderer.invoke("documents-clean-up");

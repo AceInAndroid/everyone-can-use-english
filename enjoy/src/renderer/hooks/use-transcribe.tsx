@@ -5,9 +5,6 @@ import {
 import OpenAI from "openai";
 import { useContext, useState } from "react";
 import { t } from "i18next";
-import { AI_WORKER_ENDPOINT } from "@/constants";
-import * as sdk from "microsoft-cognitiveservices-speech-sdk";
-import axios from "axios";
 import { useAiCommand } from "./use-ai-command";
 import { toast } from "@renderer/components/ui";
 import {
@@ -17,8 +14,6 @@ import {
 import { type ParsedCaptionsResult, parseText } from "media-captions";
 import { SttEngineOptionEnum } from "@/types/enums";
 import { RecognitionResult } from "echogarden/dist/api/API.js";
-import take from "lodash/take";
-import sortedUniqBy from "lodash/sortedUniqBy";
 import log from "electron-log/renderer";
 
 const logger = log.scope("use-transcribe.tsx");
@@ -28,7 +23,7 @@ const logger = log.scope("use-transcribe.tsx");
 const punctuationsPattern = /\w[.,!?](\s|$)/g;
 
 export const useTranscribe = () => {
-  const { EnjoyApp, user, webApi } = useContext(AppSettingsProviderContext);
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { openai, echogardenSttConfig } = useContext(AISettingsProviderContext);
   const { punctuateText } = useAiCommand();
   const [output, setOutput] = useState<string>("");
@@ -37,7 +32,7 @@ export const useTranscribe = () => {
     if (src instanceof Blob) {
       src = await EnjoyApp.cacheObjects.writeFile(
         `${Date.now()}.${src.type.split("/")[1].split(";")[0]}`,
-        await src.arrayBuffer()
+        Buffer.from(await src.arrayBuffer())
       );
     }
 
@@ -66,15 +61,8 @@ export const useTranscribe = () => {
     url: string;
   }> => {
     const url = await transcode(mediaSrc);
-    const {
-      targetId,
-      targetType,
-      originalText,
-      language,
-      service,
-      isolate = false,
-      align = true,
-    } = params || {};
+    const { originalText, language, service, isolate = false, align = true } =
+      params || {};
     const blob = await (await fetch(url)).blob();
 
     let result: any;
@@ -85,22 +73,12 @@ export const useTranscribe = () => {
       result = await transcribeByLocal(url, {
         language,
       });
-    } else if (service === SttEngineOptionEnum.ENJOY_CLOUDFLARE) {
-      result = await transcribeByCloudflareAi(blob);
     } else if (service === SttEngineOptionEnum.OPENAI) {
       result = await transcribeByOpenAi(
         new File([blob], "audio.mp3", { type: "audio/mp3" })
       );
     } else {
-      // Azure AI is the default service
-      result = await transcribeByAzureAi(
-        new File([blob], "audio.wav", { type: "audio/wav" }),
-        language,
-        {
-          targetId,
-          targetType,
-        }
-      );
+      throw new Error(t("aiEngineNotSupported"));
     }
 
     const { segmentTimeline, transcript } = result;
@@ -244,7 +222,7 @@ export const useTranscribe = () => {
     transcript: string;
     segmentTimeline: TimelineEntry[];
   }> => {
-    let { language } = options || {};
+    const { language } = options || {};
     const languageCode = language.split("-")[0];
     let model: string;
 
@@ -329,170 +307,6 @@ export const useTranscribe = () => {
     } catch (err) {
       throw new Error(t("openaiTranscribeFailed", { error: err.message }));
     }
-  };
-
-  const transcribeByCloudflareAi = async (
-    blob: Blob
-  ): Promise<{
-    engine: string;
-    model: string;
-    transcript: string;
-    segmentTimeline: TimelineEntry[];
-  }> => {
-    setOutput("Transcribing from Cloudflare...");
-    logger.info("Start transcribing from Cloudflare...");
-    try {
-      const res: CfWhipserOutputType = (
-        await axios.postForm(
-          `${AI_WORKER_ENDPOINT}/audio/transcriptions`,
-          blob,
-          {
-            headers: {
-              Authorization: `Bearer ${user.accessToken}`,
-            },
-            timeout: 1000 * 60 * 5,
-          }
-        )
-      ).data;
-
-      setOutput("Cloudflare transcribe done");
-      const segmentTimeline: TimelineEntry[] = [];
-      if (res.vtt) {
-        const caption = await parseText(res.vtt, { type: "vtt" });
-        for (const cue of caption.cues) {
-          segmentTimeline.push({
-            type: "segment",
-            text: cue.text,
-            startTime: cue.startTime,
-            endTime: cue.endTime,
-            timeline: [],
-          });
-        }
-      }
-
-      return {
-        engine: "cloudflare",
-        model: "@cf/openai/whisper",
-        transcript: res.text,
-        segmentTimeline,
-      };
-    } catch (err) {
-      throw new Error(t("cloudflareTranscribeFailed", { error: err.message }));
-    }
-  };
-
-  const transcribeByAzureAi = async (
-    file: File,
-    language: string,
-    params?: {
-      targetId?: string;
-      targetType?: string;
-    }
-  ): Promise<{
-    engine: string;
-    model: string;
-    transcript: string;
-    segmentTimeline: TimelineEntry[];
-    tokenId: number;
-  }> => {
-    const { id, token, region } = await webApi.generateSpeechToken({
-      ...params,
-      purpose: "transcribe",
-    });
-    const config = sdk.SpeechConfig.fromAuthorizationToken(token, region);
-    const audioConfig = sdk.AudioConfig.fromWavFileInput(file);
-    // setting the recognition language to learning language, such as 'en-US'.
-    config.speechRecognitionLanguage = language;
-    config.requestWordLevelTimestamps();
-    config.outputFormat = sdk.OutputFormat.Detailed;
-    config.setProfanity(sdk.ProfanityOption.Raw);
-
-    // create the speech recognizer.
-    const reco = new sdk.SpeechRecognizer(config, audioConfig);
-
-    setOutput("Transcribing from Azure...");
-    logger.info("Start transcribing from Azure...");
-    let results: SpeechRecognitionResultType[] = [];
-
-    const { transcript, segmentTimeline }: any = await new Promise(
-      (resolve, reject) => {
-        reco.recognizing = (_s, e) => {
-          setOutput((prev) => prev + e.result.text);
-        };
-
-        reco.recognized = (_s, e) => {
-          const json = e.result.properties.getProperty(
-            sdk.PropertyId.SpeechServiceResponse_JsonResult
-          );
-          const result = JSON.parse(json);
-          results = results.concat(result);
-        };
-
-        reco.canceled = (_s, e) => {
-          if (e.reason === sdk.CancellationReason.Error) {
-            logger.error("Azure transcribe canceled: Reason=" + e.reason);
-            return reject(new Error(e.errorDetails));
-          }
-
-          reco.stopContinuousRecognitionAsync();
-          logger.info("Azure transcribe canceled: Reason=" + e.reason);
-        };
-
-        reco.sessionStopped = async (_s, e) => {
-          logger.info(
-            "Azure transcribe session stopped. Stop continuous recognition.",
-            e.sessionId
-          );
-          reco.stopContinuousRecognitionAsync();
-
-          if (results.length === 0) {
-            return reject(t("azureTranscribeFailed", { error: "" }));
-          }
-
-          try {
-            const transcript = results
-              .map((result) => result.DisplayText)
-              .join(" ");
-            const segmentTimeline: TimelineEntry[] = [];
-            results.forEach((result) => {
-              if (!result.DisplayText) return;
-
-              const best = take(sortedUniqBy(result.NBest, "Confidence"), 1)[0];
-              if (!best.Words) return;
-              if (!best.Confidence || best.Confidence < 0.5) return;
-
-              const firstWord = best.Words[0];
-              const lastWord = best.Words[best.Words.length - 1];
-
-              segmentTimeline.push({
-                type: "segment",
-                text: best.Display,
-                startTime: firstWord.Offset / 10000000.0,
-                endTime: (lastWord.Offset + lastWord.Duration) / 10000000.0,
-                timeline: [],
-              });
-            });
-
-            resolve({
-              transcript,
-              segmentTimeline,
-            });
-          } catch (err) {
-            logger.error("azureTranscribeFailed", { error: err.message });
-            reject(t("azureTranscribeFailed", { error: err.message }));
-          }
-        };
-        reco.startContinuousRecognitionAsync();
-      }
-    );
-
-    return {
-      engine: "azure",
-      model: "whisper",
-      transcript,
-      segmentTimeline,
-      tokenId: id,
-    };
   };
 
   return {

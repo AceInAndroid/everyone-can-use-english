@@ -9,7 +9,7 @@ export const ResetAllSettings = () => {
       <div className="">
         <div className="mb-2">{t("resetAll")}</div>
         <div className="text-sm text-muted-foreground mb-2">
-          {t("logoutAndRemoveAllPersonalData")}
+          {t("resetSettingsConfirmation")}
         </div>
       </div>
 

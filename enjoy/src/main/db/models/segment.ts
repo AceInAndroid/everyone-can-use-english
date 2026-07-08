@@ -13,12 +13,11 @@ import {
   AllowNull,
   AfterFind,
 } from "sequelize-typescript";
-import { Audio, Transcription, UserSetting, Video } from "@main/db/models";
+import { Audio, Transcription, Video } from "@main/db/models";
 import mainWindow from "@main/window";
 import log from "@main/logger";
 import { Client } from "@/api";
 import settings from "@main/settings";
-import storage from "@/main/storage";
 import path from "path";
 import { TimelineEntry } from "echogarden/dist/utilities/Timeline.d.js";
 import FfmpegWrapper from "@/main/ffmpeg";
@@ -119,32 +118,14 @@ export class Segment extends Model<Segment> {
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger,
     });
     return webApi.syncSegment(this.toJSON()).then(() => {
-      const now = new Date();
-      this.update({ syncedAt: now, updatedAt: now });
+      return this.update(
+        { syncedAt: new Date() },
+        { hooks: false, silent: true }
+      );
     });
-  }
-
-  async upload() {
-    if (this.isUploaded) return;
-
-    return storage
-      .put(this.md5, this.filePath, this.mimeType)
-      .then((result) => {
-        logger.debug("upload result:", result.data);
-        if (result.data.success) {
-          this.update({ uploadedAt: new Date() });
-        } else {
-          throw new Error(result.data);
-        }
-      })
-      .catch((err) => {
-        logger.error("upload failed:", err.message);
-        throw err;
-      });
   }
 
   static async generate(params: {
@@ -187,7 +168,7 @@ export class Segment extends Model<Segment> {
     });
 
     const md5 = await hashFile(output, { algo: "md5" });
-    const userId = settings.getSync("user.id");
+    const userId = settings.localStorageNamespace();
     const id = uuidv5(`${userId}/${md5}`, uuidv5.URL);
     const dir = path.join(settings.userDataPath(), "segments");
     fs.ensureDirSync(dir);
@@ -238,12 +219,9 @@ export class Segment extends Model<Segment> {
   }
 
   @AfterCreate
-  static syncAndUploadAfterCreate(segment: Segment) {
+  static syncAfterCreate(segment: Segment) {
     segment.sync().catch((err) => {
       logger.error("sync segment error", segment.id, err);
-    });
-    segment.upload().catch((err) => {
-      logger.error("upload segment error", segment.id, err);
     });
   }
 

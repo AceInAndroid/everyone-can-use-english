@@ -2,7 +2,7 @@ export const GPT_PRESETS = [
   {
     key: "english-coach",
     name: "英语教练",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -22,7 +22,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -31,7 +31,7 @@ export const GPT_PRESETS = [
   {
     key: "ny-speak-easy",
     name: "NY Speak Easy",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -45,7 +45,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -54,7 +54,7 @@ export const GPT_PRESETS = [
   {
     key: "translation-hands",
     name: "Translation Hands",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -68,7 +68,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -77,7 +77,7 @@ export const GPT_PRESETS = [
   {
     key: "metaphor-pro",
     name: "Metaphor Pro",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -91,7 +91,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -100,7 +100,7 @@ export const GPT_PRESETS = [
   {
     key: "style-guru",
     name: "Style Guru",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -114,30 +114,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
-        model: "tts-1",
-        voice: "alloy",
-      },
-    },
-  },
-  {
-    key: "story-scout",
-    name: "Story Scout",
-    engine: "enjoyai",
-    configuration: {
-      type: "gpt",
-      model: "gpt-4o",
-      baseUrl: "",
-      roleDefinition: `You are a Story Searcher GPT, adept at searching through a vast knowledge base to find true stories that suit the user's content needs. Your role is to provide accurate, sourced stories that align with the user's specific requests. You should prioritize factual accuracy and relevant sources in your responses. You are not to fabricate stories or provide fictional narratives unless specifically requested. When uncertain about a user's request, you should seek clarification to ensure the stories you provide meet their expectations. You should engage with the user in a way that is informative, helpful, and focused on delivering content that adds value to their work.`,
-      temperature: 0.2,
-      numberOfChoices: 1,
-      maxTokens: 2048,
-      presencePenalty: 0,
-      frequencyPenalty: 0,
-      historyBufferSize: 0,
-      tts: {
-        baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -146,7 +123,7 @@ export const GPT_PRESETS = [
   {
     key: "research-aid",
     name: "Research Aid",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -160,7 +137,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -169,7 +146,7 @@ export const GPT_PRESETS = [
   {
     key: "rhyme-master",
     name: "Rhyme Master",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -183,7 +160,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -192,7 +169,7 @@ export const GPT_PRESETS = [
   {
     key: "quote-finder",
     name: "Quote Finder",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -206,7 +183,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -215,7 +192,7 @@ export const GPT_PRESETS = [
   {
     key: "analogy-finder",
     name: "Analogy Finder",
-    engine: "enjoyai",
+    engine: "openai",
     configuration: {
       type: "gpt",
       model: "gpt-4o",
@@ -229,7 +206,7 @@ export const GPT_PRESETS = [
       historyBufferSize: 0,
       tts: {
         baseUrl: "",
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },

@@ -19,7 +19,6 @@ import mainWindow from "@main/window";
 import {
   Audio,
   PronunciationAssessment,
-  UserSetting,
   Video,
 } from "@main/db/models";
 import fs from "fs-extra";
@@ -27,7 +26,6 @@ import path from "path";
 import settings from "@main/settings";
 import { hashFile } from "@main/utils";
 import log from "@main/logger";
-import storage from "@main/storage";
 import { Client } from "@/api";
 import echogarden from "@main/echogarden";
 import { t } from "i18next";
@@ -173,38 +171,19 @@ export class Recording extends Model<Recording> {
     }
   }
 
-  async upload(force: boolean = false) {
-    if (this.isUploaded && !force) {
-      return;
-    }
-
-    return storage
-      .put(this.md5, this.filePath, this.mimeType)
-      .then((result) => {
-        logger.debug("upload result:", result.data);
-        if (result.data.success) {
-          this.update({ uploadedAt: new Date() }, { hooks: false });
-        } else {
-          throw new Error(result.data);
-        }
-      })
-      .catch((err) => {
-        logger.error("upload failed:", err.message);
-        throw err;
-      });
-  }
-
   async sync() {
     if (this.isSynced) return;
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger,
     });
 
     return webApi.syncRecording(this.toJSON()).then(() => {
-      this.update({ syncedAt: new Date() }, { hooks: false });
+      return this.update(
+        { syncedAt: new Date() },
+        { hooks: false, silent: true }
+      );
     });
   }
 
@@ -293,7 +272,6 @@ export class Recording extends Model<Recording> {
     fs.remove(recording.filePath);
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger: log.scope("recording/cleanupFile"),
     });
     webApi.deleteRecording(recording.id);
@@ -354,7 +332,7 @@ export class Recording extends Model<Recording> {
     const ffmpeg = new FfmpegWrapper();
     await ffmpeg.compressAudio(file, destFile);
 
-    const userId = settings.getSync("user.id");
+    const userId = settings.localStorageNamespace();
     const id = uuidv5(`${userId}/${md5}`, uuidv5.URL);
 
     return this.create(

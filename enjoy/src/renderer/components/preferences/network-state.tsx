@@ -9,14 +9,12 @@ import React, {
 } from "react";
 import { AppSettingsProviderContext } from "@renderer/context";
 import { LoaderIcon } from "lucide-react";
-import { STORAGE_WORKER_ENDPOINT } from "@/constants";
 import { Button } from "@/renderer/components/ui";
 
 export const NetworkState = () => {
   const { apiUrl, EnjoyApp, proxy } = useContext(AppSettingsProviderContext);
   const [refreshing, setRefreshing] = useState(false);
   const apiStateRef = useRef(null);
-  const storeageStateRef = useRef(null);
   const ipStateRef = useRef(null);
 
   const items = useMemo(() => {
@@ -26,12 +24,6 @@ export const NetworkState = () => {
         ref: apiStateRef,
         refresh: true,
         action: () => getConnectDelayTime(apiUrl + "/up"),
-      },
-      {
-        title: t("storageConnectTime"),
-        refresh: true,
-        ref: storeageStateRef,
-        action: () => getConnectDelayTime(STORAGE_WORKER_ENDPOINT),
       },
       {
         title: t("ipInfo"),
@@ -61,7 +53,6 @@ export const NetworkState = () => {
 
     await Promise.all([
       apiStateRef?.current.getConnectState({ force: true }),
-      storeageStateRef?.current.getConnectState({ force: true }),
       ipStateRef?.current.getConnectState({ force: true }),
     ]);
 

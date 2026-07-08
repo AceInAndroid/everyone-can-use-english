@@ -7,6 +7,7 @@ import {
 import { toast } from "@renderer/components/ui";
 import { chatMessagesReducer } from "@renderer/reducers";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatOllama } from "@langchain/ollama";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
@@ -26,9 +27,7 @@ import {
 } from "@/types/enums";
 
 export const useChatSession = (chatId: string) => {
-  const { EnjoyApp, user, apiUrl, learningLanguage } = useContext(
-    AppSettingsProviderContext
-  );
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { currentGptEngine, ttsConfig } = useContext(AISettingsProviderContext);
   const { openai } = useContext(AISettingsProviderContext);
   const { addDblistener, removeDbListener } = useContext(DbProviderContext);
@@ -242,7 +241,7 @@ export const useChatSession = (chatId: string) => {
           case ChatMessageRoleEnum.AGENT:
             return `${message.member.agent.name}: ${message.content} (${timestamp})`;
           case ChatMessageRoleEnum.USER:
-            return `${user.name}: ${message.content} (${timestamp})`;
+            return `Local User: ${message.content} (${timestamp})`;
           case ChatMessageRoleEnum.SYSTEM:
             return `(${message.content}, ${timestamp})`;
           default:
@@ -309,7 +308,8 @@ export const useChatSession = (chatId: string) => {
 
   const buildLlm = (member: ChatMemberType) => {
     const {
-      engine = "enjoyai",
+      engine = "openai",
+      baseUrl,
       model = "gpt-4o",
       temperature,
       maxCompletionTokens,
@@ -318,26 +318,8 @@ export const useChatSession = (chatId: string) => {
       numberOfChoices,
     } = member.config.gpt;
 
-    if (engine === "enjoyai") {
-      if (!user.accessToken) {
-        throw new Error(t("authorizationExpired"));
-      }
-
-      return new ChatOpenAI({
-        openAIApiKey: user.accessToken,
-        configuration: {
-          baseURL: `${apiUrl}/api/ai`,
-        },
-        maxRetries: 0,
-        modelName: model,
-        temperature,
-        maxTokens: maxCompletionTokens,
-        frequencyPenalty,
-        presencePenalty,
-        n: numberOfChoices,
-      });
-    } else if (engine === "openai") {
-      if (!openai.key) {
+    if (engine === "openai") {
+      if (!openai?.key) {
         throw new Error(t("openaiKeyRequired"));
       }
 
@@ -353,6 +335,15 @@ export const useChatSession = (chatId: string) => {
         frequencyPenalty,
         presencePenalty,
         n: numberOfChoices,
+      });
+    } else if (engine === "ollama") {
+      return new ChatOllama({
+        baseUrl,
+        model,
+        temperature,
+        frequencyPenalty,
+        presencePenalty,
+        maxRetries: 2,
       });
     } else {
       throw new Error(t("aiEngineNotSupported"));

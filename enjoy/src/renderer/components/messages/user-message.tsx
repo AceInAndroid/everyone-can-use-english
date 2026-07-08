@@ -1,23 +1,12 @@
 import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogHeader,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogContent,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
   Avatar,
   AvatarImage,
   AvatarFallback,
-  Button,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  toast,
 } from "@renderer/components/ui";
 import {
   SpeechPlayer,
@@ -32,13 +21,11 @@ import {
   AlertCircleIcon,
   CopyIcon,
   CheckIcon,
-  Share2Icon,
   ForwardIcon,
   MoreVerticalIcon,
 } from "lucide-react";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
 import { t } from "i18next";
-import { useNavigate } from "react-router-dom";
 import Markdown from "react-markdown";
 import { formatDateTime } from "@renderer/lib/utils";
 
@@ -50,40 +37,9 @@ export const UserMessageComponent = (props: {
 }) => {
   const { message, onResend, onRemove } = props;
   const speech = message.speeches?.[0];
-  const { user, webApi } = useContext(AppSettingsProviderContext);
+  const { user } = useContext(AppSettingsProviderContext);
   const [_, copyToClipboard] = useCopyToClipboard();
   const [copied, setCopied] = useState<boolean>(false);
-  const navigate = useNavigate();
-
-  const handleShare = async () => {
-    if (message.role === "user") {
-      const content = message.content;
-      webApi
-        .createPost({
-          metadata: {
-            type: "prompt",
-            content,
-          },
-        })
-        .then(() => {
-          toast.success(t("sharedSuccessfully"), {
-            description: t("sharedPrompt"),
-            action: {
-              label: t("view"),
-              onClick: () => {
-                navigate("/community");
-              },
-            },
-            actionButtonStyle: {
-              backgroundColor: "var(--primary)",
-            },
-          });
-        })
-        .catch((err) => {
-          toast.error(t("shareFailed"), { description: err.message });
-        });
-    }
-  };
 
   return (
     <div id={`message-${message.id}`} className="">
@@ -152,34 +108,6 @@ export const UserMessageComponent = (props: {
                 />
               }
             />
-
-            {message.createdAt && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Share2Icon
-                    data-tooltip-id="global-tooltip"
-                    data-tooltip-content={t("share")}
-                    className="w-4 h-4 cursor-pointer"
-                  />
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{t("sharePrompt")}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {t("areYouSureToShareThisPromptToCommunity")}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-                    <AlertDialogAction asChild>
-                      <Button variant="default" onClick={handleShare}>
-                        {t("share")}
-                      </Button>
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
 
             <DropdownMenuTrigger>
               <MoreVerticalIcon className="w-4 h-4" />

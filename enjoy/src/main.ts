@@ -6,27 +6,9 @@ import log from "@main/logger";
 import mainWindow from "@main/window";
 import ElectronSquirrelStartup from "electron-squirrel-startup";
 import contextMenu from "electron-context-menu";
-import Bugsnag from "@bugsnag/electron";
 import { t } from "i18next";
-import { Client } from "./api";
 
 const logger = log.scope("main");
-
-const initBugsnag = async () => {
-  if (!app.isPackaged) return;
-  const webApi = new Client({
-    baseUrl: settings.apiUrl(),
-    logger,
-  });
-  try {
-    const apiKey = await webApi.config("bugsnag_api_key");
-    if (!apiKey) return;
-
-    Bugsnag.start({ apiKey: apiKey.bugsnagApiKey });
-  } catch (err) {
-    logger.error(err);
-  }
-};
 
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
@@ -34,8 +16,6 @@ if (!app.isPackaged) {
   app.disableHardwareAcceleration();
   app.commandLine.appendSwitch("disable-software-rasterizer");
 }
-
-initBugsnag();
 
 // Add context menu
 contextMenu({

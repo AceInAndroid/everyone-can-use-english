@@ -23,17 +23,10 @@ export const LANGUAGES = languages;
 export const DATABASE_NAME = "enjoy_database";
 export const LIBRARY_PATH_SUFFIX = "EnjoyLibrary";
 
-export const STORAGE_WORKER_ENDPOINT = "https://storage.enjoy.bot";
-export const STORAGE_WORKER_ENDPOINTS = [
-  "https://storage.enjoy.bot",
-  "https://enjoy-storage.baizhiheizi.com",
-];
-
 export const AI_WORKER_ENDPOINT = "https://ai-worker.enjoy.bot";
 
 export const WEB_API_URL = "https://enjoy.bot";
 export const WS_URL = "wss://enjoy.bot";
-export const DISCUSS_URL = "https://discuss.enjoy.bot";
 
 export const DOWNLOAD_URL = "https://1000h.org/enjoy-app/install.html";
 
@@ -42,7 +35,7 @@ export const REPO_URL =
 
 export const MAGIC_TOKEN_REGEX =
   /\b(Mrs|Ms|Mr|Dr|Prof|St|[a-zA-Z]{1,2}|\d{1,2})\.\b/g;
-export const END_OF_SENTENCE_REGEX = /[^\.!,\?][\.!\?]/g;
+export const END_OF_SENTENCE_REGEX = /[^.!,?][.!?]/g;
 
 export const FFMPEG_TRIM_SILENCE_OPTIONS = [
   "-af",
@@ -79,7 +72,7 @@ export const CHAT_GROUP_PROMPT_TEMPLATE = `You are {name} in this chat. You shou
 
 export const DEFAULT_GPT_CONFIG = {
   model: "gpt-4o",
-  engine: "enjoyai",
+  engine: "openai",
   temperature: 0.8,
   historyBufferSize: 10,
   maxCompletionTokens: -1,
@@ -93,14 +86,14 @@ export const AGENT_FIXTURE_AVA = {
   description: "I'm Ava, your English speaking teacher.",
   language: "en-US",
   config: {
-    engine: "enjoyai",
+    engine: "openai",
     model: "gpt-4o",
     prompt:
       "You are an experienced English teacher who excels at improving students' speaking skills. You always use simple yet authentic words and sentences to help students understand.",
     temperature: 1,
-    ttsEngine: "enjoyai",
-    ttsModel: "azure/speech",
-    ttsVoice: "en-US-AvaNeural",
+    ttsEngine: "openai",
+    ttsModel: "tts-1",
+    ttsVoice: "alloy",
   },
 };
 
@@ -109,14 +102,14 @@ export const AGENT_FIXTURE_ANDREW = {
   description: "I'm Andrew, your American friend.",
   language: "en-US",
   config: {
-    engine: "enjoyai",
+    engine: "openai",
     model: "gpt-4o",
     prompt:
       "You're a native American who speaks authentic American English, familiar with the culture and customs of the U.S. You're warm and welcoming, eager to make friends from abroad and share all aspects of American life.",
     temperature: 0.9,
-    ttsEngine: "enjoyai",
-    ttsModel: "azure/speech",
-    ttsVoice: "en-US-AndrewNeural",
+    ttsEngine: "openai",
+    ttsModel: "tts-1",
+    ttsVoice: "alloy",
   },
 };
 

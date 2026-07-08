@@ -112,11 +112,13 @@ class ChatsHandler {
 
     const transaction = await db.connection.transaction();
     try {
-      if (!chatData.config?.sttEngine) {
-        chatData.config.sttEngine = (await UserSetting.get(
+      const config: any = { ...(chatData.config || {}) };
+      if (!config.sttEngine && !config.stt) {
+        config.sttEngine = (await UserSetting.get(
           UserSettingKeyEnum.STT_ENGINE
         )) as string;
       }
+      chatData.config = Chat.normalizeConfig(config);
       const chat = await Chat.create(
         {
           type,
@@ -158,7 +160,7 @@ class ChatsHandler {
     try {
       await chat.update({
         name: data.name,
-        config: data.config,
+        config: Chat.normalizeConfig(data.config),
       });
       await chat.reload({
         include: [

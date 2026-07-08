@@ -3,15 +3,8 @@ import {
   Dialog,
   DialogContent,
   ScrollArea,
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
   Separator,
   DialogTitle,
-  Avatar,
-  AvatarImage,
-  DropdownMenuSeparator,
 } from "@renderer/components/ui";
 import {
   SettingsIcon,
@@ -20,27 +13,19 @@ import {
   VideoIcon,
   NewspaperIcon,
   BookMarkedIcon,
-  UserIcon,
   BotIcon,
-  UsersRoundIcon,
   LucideIcon,
   NotebookPenIcon,
   SpeechIcon,
-  GraduationCapIcon,
   MessagesSquareIcon,
   PanelLeftOpenIcon,
   PanelLeftCloseIcon,
-  ChevronsUpDownIcon,
-  LogOutIcon,
-  CreditCardIcon,
 } from "lucide-react";
-import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import { t } from "i18next";
 import { Preferences } from "@renderer/components";
 import { AppSettingsProviderContext } from "@renderer/context";
 import { useContext, useEffect } from "react";
-import { NoticiationsChannel } from "@renderer/cables";
-import { useState } from "react";
 
 export const Sidebar = (props: {
   isCollapsed: boolean;
@@ -49,19 +34,8 @@ export const Sidebar = (props: {
   const { isCollapsed, setIsCollapsed } = props;
   const location = useLocation();
   const activeTab = location.pathname;
-  const { EnjoyApp, cable, displayPreferences, setDisplayPreferences } =
+  const { EnjoyApp, displayPreferences, setDisplayPreferences } =
     useContext(AppSettingsProviderContext);
-
-  useEffect(() => {
-    if (!cable) return;
-
-    const channel = new NoticiationsChannel(cable);
-    channel.subscribe();
-
-    return () => {
-      channel.unsubscribe();
-    };
-  }, [cable]);
 
   // Save the sidebar state to cache
   useEffect(() => {
@@ -102,7 +76,6 @@ export const Sidebar = (props: {
         }`}
       >
         <ScrollArea className="w-full h-full pb-12 pt-8">
-          <SidebarHeader isCollapsed={isCollapsed} />
           <div className="grid gap-2 mb-4">
             <SidebarItem
               href="/"
@@ -121,26 +94,6 @@ export const Sidebar = (props: {
               Icon={MessagesSquareIcon}
               isCollapsed={isCollapsed}
             />
-
-            <SidebarItem
-              href="/courses"
-              label={t("sidebar.courses")}
-              tooltip={t("sidebar.courses")}
-              active={activeTab.startsWith("/courses")}
-              Icon={GraduationCapIcon}
-              isCollapsed={isCollapsed}
-            />
-
-            <SidebarItem
-              href="/community"
-              label={t("sidebar.community")}
-              tooltip={t("sidebar.community")}
-              active={activeTab.startsWith("/community")}
-              Icon={UsersRoundIcon}
-              isCollapsed={isCollapsed}
-            />
-
-            <Separator />
 
             <SidebarItem
               href="/audios"
@@ -302,82 +255,5 @@ const SidebarItem = (props: {
         {!isCollapsed && <span className="ml-2">{label}</span>}
       </Button>
     </Link>
-  );
-};
-
-const SidebarHeader = (props: { isCollapsed: boolean }) => {
-  const { isCollapsed } = props;
-  const { user, logout, refreshAccount, setDisplayDepositDialog } = useContext(
-    AppSettingsProviderContext
-  );
-  const [open, setOpen] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (open) {
-      refreshAccount?.();
-    }
-  }, [open]);
-
-  if (!user) {
-    return null;
-  }
-
-  return (
-    <div className="py-3 px-1 sticky top-0 bg-muted z-10 non-draggable-region">
-      <DropdownMenu open={open} onOpenChange={setOpen}>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className={`w-full h-12 hover:bg-background ${
-              isCollapsed ? "justify-center px-1" : "justify-start"
-            }`}
-          >
-            <Avatar className="size-8">
-              <AvatarImage src={user.avatarUrl} />
-            </Avatar>
-            {!isCollapsed && (
-              <>
-                <div className="ml-2 flex flex-col leading-none">
-                  <span className="text-left text-sm font-medium line-clamp-1">
-                    {user.name}
-                  </span>
-                  <span className="text-left text-xs text-muted-foreground line-clamp-1">
-                    {user.id}
-                  </span>
-                </div>
-                <ChevronsUpDownIcon className="size-4 ml-auto" />
-              </>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="w-[--radix-dropdown-menu-trigger-width]"
-          align="start"
-          side="bottom"
-        >
-          <DropdownMenuItem
-            className="cursor-pointer"
-            onSelect={() => navigate("/profile")}
-          >
-            <span>{t("sidebar.profile")}</span>
-            <UserIcon className="size-4 ml-auto" />
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setDisplayDepositDialog(true)}
-            className="cursor-pointer"
-          >
-            <span className="flex-1 truncate">${user.balance || 0.0}</span>
-            <CreditCardIcon className="size-4 ml-auto" />
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={logout} className="cursor-pointer">
-            <span>{t("logout")}</span>
-            <LogOutIcon className="size-4 ml-auto" />
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
   );
 };

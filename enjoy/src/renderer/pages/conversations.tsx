@@ -16,7 +16,7 @@ import {
 import { ConversationCard, ConversationForm } from "@renderer/components";
 import { useState, useEffect, useContext, useReducer } from "react";
 import { LoaderIcon } from "lucide-react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   DbProviderContext,
   AppSettingsProviderContext,
@@ -26,7 +26,6 @@ import { conversationsReducer } from "@renderer/reducers";
 import { GPT_PRESETS } from "@/constants";
 
 export default () => {
-  const [searchParams] = useSearchParams();
   const { addDblistener, removeDbListener } = useContext(DbProviderContext);
   const { EnjoyApp, webApi } = useContext(AppSettingsProviderContext);
   const { currentGptEngine } = useContext(AISettingsProviderContext);
@@ -42,13 +41,12 @@ export default () => {
     ttsPreset: {
       key: "tts",
       name: "TTS",
-      engine: currentGptEngine?.name,
+      engine: "openai",
       configuration: {
         type: "tts",
         tts: {
-          engine: currentGptEngine?.name,
-          model:
-            currentGptEngine?.name === "enjoyai" ? "openai/tts-1" : "tts-1",
+          engine: "openai",
+          model: "tts-1",
           voice: "alloy",
         },
       },
@@ -66,21 +64,6 @@ export default () => {
       removeDbListener(onConversationsUpdate);
     };
   }, []);
-
-  useEffect(() => {
-    const postId = searchParams.get("postId");
-    if (!postId) return;
-
-    webApi.post(postId).then((post) => {
-      const preset: any = post.metadata.content;
-      if (!preset?.configuration?.roleDefinition) {
-        return;
-      }
-
-      setPreset(preset);
-      setCreating(true);
-    });
-  }, [searchParams.get("postId")]);
 
   const fetchConversations = async () => {
     const limit = 10;
@@ -141,49 +124,24 @@ export default () => {
         engine: currentGptEngine.name,
         model: currentGptEngine.models.default,
         tts: {
-          engine: currentGptEngine.name,
-          model: currentGptEngine.name === "enjoyai" ? "openai/tts-1" : "tts-1",
+          engine: "openai",
+          model: "tts-1",
         },
       },
     };
     let defaultTtsPreset = {
       key: "tts",
       name: "TTS",
-      engine: currentGptEngine.name,
+      engine: "openai",
       configuration: {
         type: "tts",
         tts: {
-          engine: currentGptEngine.name,
-          model: currentGptEngine.name === "enjoyai" ? "openai/tts-1" : "tts-1",
+          engine: "openai",
+          model: "tts-1",
           voice: "alloy",
         },
       },
     };
-
-    try {
-      const gptPresets: any[] = await webApi.config("gpt_presets");
-      const defaultGpt = await webApi.config("default_gpt_preset");
-      const defaultTts = await webApi.config("default_tts_preset");
-
-      if (gptPresets.length > 0) {
-        presets = [...gptPresets];
-      }
-
-      if (defaultGpt.engine === currentGptEngine.name) {
-        defaultGpt.key = "custom";
-        defaultGpt.name = t("custom");
-        defaultGpt.configuration.model = currentGptEngine.models.default;
-        defaultGpt.configuration.tts.engine = currentGptEngine.name;
-
-        defaultGptPreset = defaultGpt;
-      }
-
-      if (defaultTts.engine === currentGptEngine.name) {
-        defaultTtsPreset = defaultTts;
-      }
-    } catch (error) {
-      console.error(error);
-    }
 
     const gptPresets = presets.map((preset) =>
       Object.assign({}, preset, {
@@ -193,9 +151,8 @@ export default () => {
           model: currentGptEngine.models.default,
           tts: {
             ...preset.configuration.tts,
-            engine: currentGptEngine.name,
-            model:
-              currentGptEngine.name === "enjoyai" ? "openai/tts-1" : "tts-1",
+            engine: "openai",
+            model: "tts-1",
           },
         },
       })

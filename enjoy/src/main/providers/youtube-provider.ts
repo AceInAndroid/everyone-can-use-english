@@ -49,18 +49,22 @@ export class YoutubeProvider {
 
       const videoList = videoContents
         .filter((i: any) => i.richItemRenderer)
+        .map((video: any) => video.richItemRenderer.content.videoRenderer)
+        .filter((video: any) => {
+          return (
+            video?.videoId &&
+            video?.title?.runs?.[0]?.text &&
+            video?.thumbnail?.thumbnails?.length
+          );
+        })
         .map((video: any) => {
-          const thumbnails =
-            video.richItemRenderer.content.videoRenderer.thumbnail.thumbnails;
+          const thumbnails = video.thumbnail.thumbnails;
 
           return {
-            title:
-              video.richItemRenderer.content.videoRenderer.title.runs[0].text,
+            title: video.title.runs[0].text,
             thumbnail: thumbnails[thumbnails.length - 1].url,
-            videoId: video.richItemRenderer.content.videoRenderer.videoId,
-            duration:
-              video.richItemRenderer.content.videoRenderer.lengthText
-                ?.simpleText,
+            videoId: video.videoId,
+            duration: video.lengthText?.simpleText,
           };
         });
 

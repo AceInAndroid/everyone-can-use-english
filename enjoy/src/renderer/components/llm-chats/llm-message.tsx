@@ -2,9 +2,16 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
   toast,
 } from "@renderer/components/ui";
 import {
+  AudioPlayer,
   ConversationShortcuts,
   MarkdownWrapper,
   SpeechPlayer,
@@ -14,6 +21,7 @@ import { useContext, useEffect, useState } from "react";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
 import {
   CheckIcon,
+  ChevronDownIcon,
   CopyIcon,
   DownloadIcon,
   ForwardIcon,
@@ -24,19 +32,16 @@ import {
 } from "lucide-react";
 import { t } from "i18next";
 import { useAiCommand, useSpeech } from "@renderer/hooks";
-import {
-  AppSettingsProviderContext,
-  CourseProviderContext,
-} from "@renderer/context";
+import { AppSettingsProviderContext } from "@renderer/context";
 import { md5 } from "js-md5";
 
 export const LlmMessage = (props: { llmMessage: LlmMessageType }) => {
   const { llmMessage } = props;
   const { EnjoyApp } = useContext(AppSettingsProviderContext);
-  const { setShadowing } = useContext(CourseProviderContext);
   const [_, copyToClipboard] = useCopyToClipboard();
   const [copied, setCopied] = useState<boolean>(false);
   const [speech, setSpeech] = useState<Partial<SpeechType>>();
+  const [shadowingAudio, setShadowingAudio] = useState<AudioType | null>(null);
   const [speeching, setSpeeching] = useState<boolean>(false);
   const [resourcing, setResourcing] = useState<boolean>(false);
   const { tts } = useSpeech();
@@ -54,7 +59,7 @@ export const LlmMessage = (props: { llmMessage: LlmMessageType }) => {
       sourceId: llmMessage.id,
       text: llmMessage.response,
       configuration: {
-        engine: "enjoyai",
+        engine: "openai",
         model: "tts-1",
         voice: "alloy",
       },
@@ -110,14 +115,14 @@ export const LlmMessage = (props: { llmMessage: LlmMessageType }) => {
           name: title,
           originalText: speech.text,
         })
-        .then((audio) => setShadowing(audio))
+        .then((audio) => setShadowingAudio(audio))
         .catch((err) => toast.error(t(err.message)))
         .finally(() => {
           setResourcing(false);
         });
     }
 
-    setShadowing(audio);
+    setShadowingAudio(audio);
   };
 
   const handleDownload = async () => {
@@ -315,6 +320,32 @@ export const LlmMessage = (props: { llmMessage: LlmMessageType }) => {
           )}
         </div>
       )}
+      <Sheet
+        modal={false}
+        open={Boolean(shadowingAudio)}
+        onOpenChange={(value) => {
+          if (!value) setShadowingAudio(null);
+        }}
+      >
+        <SheetContent
+          container="main-panel-content"
+          side="bottom"
+          className="h-content p-0 flex flex-col gap-0"
+          displayClose={false}
+          onPointerDownOutside={(event) => event.preventDefault()}
+          onInteractOutside={(event) => event.preventDefault()}
+        >
+          <SheetHeader className="flex items-center justify-center space-y-0 py-1">
+            <SheetTitle className="sr-only">Shadow</SheetTitle>
+            <SheetDescription className="sr-only" />
+            <SheetClose>
+              <ChevronDownIcon />
+            </SheetClose>
+          </SheetHeader>
+
+          {shadowingAudio && <AudioPlayer id={shadowingAudio.id} />}
+        </SheetContent>
+      </Sheet>
     </>
   );
 };

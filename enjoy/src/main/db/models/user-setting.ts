@@ -67,10 +67,6 @@ export class UserSetting extends Model<UserSetting> {
     }
   }
 
-  static async accessToken(): Promise<string | null> {
-    return (await UserSetting.get(UserSettingKeyEnum.PROFILE))?.accessToken;
-  }
-
   static async clear(): Promise<void> {
     await UserSetting.destroy({ where: {} });
   }
@@ -134,16 +130,10 @@ export class UserSetting extends Model<UserSetting> {
     if (prevSttEngine && !sttEngine) {
       switch (prevSttEngine) {
         case "azure":
-          UserSetting.set(
-            UserSettingKeyEnum.STT_ENGINE,
-            SttEngineOptionEnum.ENJOY_AZURE
-          );
+          UserSetting.set(UserSettingKeyEnum.STT_ENGINE, SttEngineOptionEnum.LOCAL);
           break;
         case "cloudflare":
-          UserSetting.set(
-            UserSettingKeyEnum.STT_ENGINE,
-            SttEngineOptionEnum.ENJOY_CLOUDFLARE
-          );
+          UserSetting.set(UserSettingKeyEnum.STT_ENGINE, SttEngineOptionEnum.LOCAL);
           break;
         case "openai":
           UserSetting.set(
@@ -161,13 +151,6 @@ export class UserSetting extends Model<UserSetting> {
     const prevWhisper = await settings.get("whisper.model");
     if (prevWhisper && !whisper) {
       UserSetting.set(UserSettingKeyEnum.WHISPER, prevWhisper as string);
-    }
-
-    // Profile
-    const profile = await UserSetting.get(UserSettingKeyEnum.PROFILE);
-    const prevProfile = (await settings.get("user")) as UserType;
-    if (prevProfile && !profile) {
-      UserSetting.set(UserSettingKeyEnum.PROFILE, prevProfile as UserType);
     }
 
     // Recorder Config

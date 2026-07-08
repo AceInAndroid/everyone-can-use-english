@@ -38,7 +38,6 @@ import { useNavigate } from "react-router-dom";
 import {
   GPT_PROVIDERS,
   TTS_PROVIDERS,
-  GPTShareButton,
   ConversationFormGPT,
   ConversationFormTTS,
 } from "@renderer/components";
@@ -51,15 +50,13 @@ export const ConversationForm = (props: {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [gptProviders, setGptProviders] = useState<any>(GPT_PROVIDERS);
   const [ttsProviders, setTtsProviders] = useState<any>(TTS_PROVIDERS);
-  const { EnjoyApp, webApi, learningLanguage } = useContext(
-    AppSettingsProviderContext
-  );
+  const { EnjoyApp, learningLanguage } = useContext(AppSettingsProviderContext);
   const { openai } = useContext(AISettingsProviderContext);
   const navigate = useNavigate();
 
   const conversationFormSchema = z.object({
     name: z.string().optional(),
-    engine: z.enum(["enjoyai", "openai", "ollama"]).default("openai"),
+    engine: z.enum(["openai", "ollama"]).default("openai"),
     configuration: z.object({
       type: z.enum(["gpt", "tts"]),
       model: z.string().optional(),
@@ -73,8 +70,8 @@ export const ConversationForm = (props: {
       historyBufferSize: z.number().min(0).default(10),
       tts: z.object({
         language: z.string().default(learningLanguage).optional(),
-        engine: z.enum(["openai", "enjoyai"]).default("enjoyai"),
-        model: z.string().default("openai/tts-1"),
+        engine: z.enum(["openai"]).default("openai"),
+        model: z.string().default("tts-1"),
         voice: z.string(),
         baseUrl: z.string().optional(),
       }),
@@ -82,14 +79,11 @@ export const ConversationForm = (props: {
   });
 
   const refreshGptProviders = async () => {
-    let providers = GPT_PROVIDERS;
-
-    try {
-      const config = await webApi.config("gpt_providers");
-      providers = Object.assign(providers, config);
-    } catch (e) {
-      console.warn(`Failed to fetch remote GPT config: ${e.message}`);
-    }
+    const providers: Record<string, any> = {
+      ...GPT_PROVIDERS,
+      openai: { ...GPT_PROVIDERS.openai },
+      ollama: { ...GPT_PROVIDERS.ollama },
+    };
 
     try {
       const response = await fetch(providers["ollama"]?.baseUrl + "/api/tags");
@@ -100,7 +94,7 @@ export const ConversationForm = (props: {
       console.warn(`No ollama server found: ${e.message}`);
     }
 
-    if (openai.models) {
+    if (openai?.models) {
       providers["openai"].models = openai.models.split(",");
     }
 
@@ -116,14 +110,10 @@ export const ConversationForm = (props: {
   };
 
   const refreshTtsProviders = async () => {
-    let providers = TTS_PROVIDERS;
-
-    try {
-      const config = await webApi.config("tts_providers_v2");
-      providers = Object.assign(providers, config);
-    } catch (e) {
-      console.warn(`Failed to fetch remote TTS config: ${e.message}`);
-    }
+    const providers: Record<string, any> = {
+      ...TTS_PROVIDERS,
+      openai: { ...TTS_PROVIDERS.openai },
+    };
 
     setTtsProviders({ ...providers });
   };
@@ -269,32 +259,21 @@ export const ConversationForm = (props: {
       configuration.tts.engine = "openai";
     }
     if (!configuration.tts.model) {
-      configuration.tts.model = "openai/tts-1";
+      configuration.tts.model = "tts-1";
     }
 
     if (ttsEngine === "openai") {
+      const models = ttsProviders["openai"].models;
+      configuration.tts.model = configuration.tts.model.replace(/^openai\//, "");
+      if (!models.includes(configuration.tts.model)) {
+        configuration.tts.model = models[0];
+      }
+
       const options = ttsProviders["openai"].voices;
       if (!options.includes(voice)) {
         configuration.tts.voice = options[0];
       }
     }
-    if (ttsEngine === "enjoyai") {
-      const model = configuration.tts.model.split("/")[0];
-      const options = ttsProviders.enjoyai.voices[model];
-      if (model === "openai" && !options.includes(voice)) {
-        configuration.tts.voice = options[0];
-      } else if (
-        model === "azure" &&
-        options.findIndex(
-          (o: any) => o.language === language && o.value === voice
-        ) < 0
-      ) {
-        configuration.tts.voice = options.find(
-          (o: any) => o.language === language
-        )?.value;
-      }
-    }
-
     return configuration;
   };
 
@@ -309,7 +288,6 @@ export const ConversationForm = (props: {
           <div className="text-lg font-bold">
             {conversation.id ? t("editConversation") : t("startConversation")}
           </div>
-          <GPTShareButton conversation={conversation} />
         </div>
         <ScrollArea className="flex-1 px-4">
           <div className="space-y-4 px-2 mb-6">

@@ -14,9 +14,10 @@ import {
 import { type LLMResult } from "@langchain/core/outputs";
 import { v4 } from "uuid";
 import { useSpeech } from "./use-speech";
+import { t } from "i18next";
 
 export const useConversation = () => {
-  const { EnjoyApp, user, apiUrl } = useContext(AppSettingsProviderContext);
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { openai } = useContext(AISettingsProviderContext);
   const { tts } = useSpeech();
 
@@ -31,22 +32,8 @@ export const useConversation = () => {
       numberOfChoices,
     } = conversation.configuration;
 
-    if (conversation.engine === "enjoyai") {
-      return new ChatOpenAI({
-        openAIApiKey: user.accessToken,
-        configuration: {
-          baseURL: `${apiUrl}/api/ai`,
-        },
-        maxRetries: 0,
-        modelName: model,
-        temperature,
-        maxTokens,
-        frequencyPenalty,
-        presencePenalty,
-        n: numberOfChoices,
-      });
-    } else if (conversation.engine === "openai") {
-      if (!openai) throw new Error("OpenAI API key is required");
+    if (conversation.engine === "openai") {
+      if (!openai?.key) throw new Error(t("openaiKeyRequired"));
 
       return new ChatOpenAI({
         openAIApiKey: openai.key,

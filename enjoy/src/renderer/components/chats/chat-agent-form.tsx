@@ -45,27 +45,9 @@ export const ChatAgentForm = (props: {
   onFinish: () => void;
 }) => {
   const { agent, onFinish } = props;
-  const { EnjoyApp, learningLanguage, webApi } = useContext(
-    AppSettingsProviderContext
-  );
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { ttsConfig } = useContext(AISettingsProviderContext);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("custom");
-  const [templates, setTemplates] = useState<
-    {
-      key: string;
-      name: string;
-      description: string;
-      prompt: string;
-    }[]
-  >(CHAT_AGENT_TEMPLATES);
-
-  const fetchTemplates = () => {
-    webApi.config("chat_agent_templates").then((tpls) => {
-      if (Array.isArray(tpls) && tpls.length > 0) {
-        setTemplates(tpls);
-      }
-    });
-  };
 
   const agentFormSchema = z.object({
     type: z.enum([ChatAgentTypeEnum.GPT, ChatAgentTypeEnum.TTS]),
@@ -159,7 +141,7 @@ export const ChatAgentForm = (props: {
       description: t("models.chatAgent.descriptionPlaceholder"),
       prompt: t("models.chatAgent.promptPlaceholder"),
     },
-    ...templates,
+    ...CHAT_AGENT_TEMPLATES,
   ];
 
   const applyTemplate = () => {
@@ -186,10 +168,6 @@ export const ChatAgentForm = (props: {
 
     applyTemplate();
   }, [selectedTemplate, form.watch("type")]);
-
-  useEffect(() => {
-    fetchTemplates();
-  }, []);
 
   return (
     <Form {...form}>

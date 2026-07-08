@@ -14,7 +14,7 @@ import {
   AfterFind,
 } from "sequelize-typescript";
 import mainWindow from "@main/window";
-import { Recording, UserSetting } from "@main/db/models";
+import { Recording } from "@main/db/models";
 import { Client } from "@/api";
 import settings from "@main/settings";
 import log from "@main/logger";
@@ -102,12 +102,14 @@ export class PronunciationAssessment extends Model<PronunciationAssessment> {
   async sync() {
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger: log.scope("api/client"),
     });
 
     return webApi.syncPronunciationAssessment(this.toJSON()).then(() => {
-      this.update({ syncedAt: new Date() });
+      return this.update(
+        { syncedAt: new Date() },
+        { hooks: false, silent: true }
+      );
     });
   }
 

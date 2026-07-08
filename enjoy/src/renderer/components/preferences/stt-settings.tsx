@@ -62,10 +62,6 @@ export const SttSettings = () => {
         <div className="text-sm text-muted-foreground">
           {sttEngine === SttEngineOptionEnum.LOCAL &&
             t("localSpeechToTextDescription")}
-          {sttEngine === SttEngineOptionEnum.ENJOY_AZURE &&
-            t("enjoyAzureSpeechToTextDescription")}
-          {sttEngine === SttEngineOptionEnum.ENJOY_CLOUDFLARE &&
-            t("enjoyCloudflareSpeechToTextDescription")}
           {sttEngine === SttEngineOptionEnum.OPENAI &&
             t("openaiSpeechToTextDescription")}
         </div>
@@ -105,12 +101,6 @@ export const SttSettings = () => {
           <SelectContent>
             <SelectItem value={SttEngineOptionEnum.LOCAL}>
               {t("local")}
-            </SelectItem>
-            <SelectItem value={SttEngineOptionEnum.ENJOY_AZURE}>
-              {t("enjoyAzure")}
-            </SelectItem>
-            <SelectItem value={SttEngineOptionEnum.ENJOY_CLOUDFLARE}>
-              {t("enjoyCloudflare")}
             </SelectItem>
             <SelectItem value={SttEngineOptionEnum.OPENAI}>OpenAI</SelectItem>
           </SelectContent>

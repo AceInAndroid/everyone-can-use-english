@@ -1,15 +1,15 @@
 import { t } from "i18next";
 import { useContext, useState } from "react";
 import { Button } from "@renderer/components/ui";
-import { Link, Navigate } from "react-router-dom";
-import { DbState, LoginForm } from "@renderer/components";
+import { Navigate } from "react-router-dom";
+import { DbState } from "@renderer/components";
 import {
   AppSettingsProviderContext,
   DbProviderContext,
 } from "@renderer/context";
 
 export default () => {
-  const { initialized, user } = useContext(AppSettingsProviderContext);
+  const { initialized } = useContext(AppSettingsProviderContext);
   const [started, setStarted] = useState(false);
   const db = useContext(DbProviderContext);
 
@@ -17,7 +17,7 @@ export default () => {
     return <Navigate to="/" replace />;
   }
 
-  if (user && db.state === "error") {
+  if (db.state === "error") {
     return (
       <div
         className="flex justify-center items-center h-full"
@@ -52,11 +52,10 @@ export default () => {
   return (
     <div className="w-full h-full px-4 py-6 lg:px-8 flex flex-col gap-8">
       <div className="text-center">
-        <div className="text-lg font-mono py-4">{t("login")}</div>
-        <div className="text-sm opacity-70">{t("loginBeforeYouStart")}</div>
+        <div className="text-lg font-mono py-4">{t("welcomeTo")} Enjoy App</div>
       </div>
       <div className="flex-1 flex justify-center">
-        <LoginForm />
+        <DbState />
       </div>
     </div>
   );

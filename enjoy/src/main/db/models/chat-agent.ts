@@ -23,6 +23,34 @@ import {
 import { DEFAULT_GPT_CONFIG } from "@/constants";
 
 const logger = log.scope("db/models/chat-agent");
+const normalizeLegacyGptConfig = (config: any = {}) => {
+  const engine = ["openai", "ollama"].includes(config.engine)
+    ? config.engine
+    : DEFAULT_GPT_CONFIG.engine;
+  const model =
+    engine === "openai" && !["gpt-4o", "gpt-4o-mini"].includes(config.model)
+      ? DEFAULT_GPT_CONFIG.model
+      : config.model || DEFAULT_GPT_CONFIG.model;
+
+  return {
+    ...DEFAULT_GPT_CONFIG,
+    engine,
+    model,
+    temperature: config.temperature,
+  };
+};
+
+const normalizeLegacyTtsConfig = (config: any = {}, language: string) => {
+  const model = config.ttsModel?.replace(/^openai\//, "");
+
+  return {
+    engine: "openai",
+    model: ["tts-1", "tts-1-hd"].includes(model) ? model : "tts-1",
+    language,
+    voice: config.ttsVoice || "alloy",
+  };
+};
+
 @Table({
   modelName: "ChatAgent",
   tableName: "chat_agents",
@@ -133,18 +161,8 @@ export class ChatAgent extends Model<ChatAgent> {
           member.userType = "ChatAgent";
           member.config = {
             ...member.config,
-            gpt: {
-              ...DEFAULT_GPT_CONFIG,
-              engine: chatAgent.config.engine,
-              model: chatAgent.config.model,
-              temperature: chatAgent.config.temperature,
-            },
-            tts: {
-              engine: chatAgent.config.ttsEngine,
-              model: chatAgent.config.ttsModel,
-              language: learningLanguage,
-              voice: chatAgent.config.ttsVoice,
-            },
+            gpt: normalizeLegacyGptConfig(chatAgent.config),
+            tts: normalizeLegacyTtsConfig(chatAgent.config, learningLanguage),
           };
           for (const chatMessage of chatMessages) {
             await chatMessage.update(

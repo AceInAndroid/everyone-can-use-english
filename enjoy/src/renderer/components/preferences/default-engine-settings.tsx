@@ -18,7 +18,6 @@ import {
 } from "@renderer/components/ui";
 import {
   AISettingsProviderContext,
-  AppSettingsProviderContext,
 } from "@renderer/context";
 import { useContext, useEffect, useState } from "react";
 import { GPT_PROVIDERS } from "@renderer/components";
@@ -27,19 +26,17 @@ export const DefaultEngineSettings = () => {
   const { currentGptEngine, setGptEngine, openai } = useContext(
     AISettingsProviderContext
   );
-  const { webApi } = useContext(AppSettingsProviderContext);
   const [providers, setProviders] = useState<any>(GPT_PROVIDERS);
   const [editing, setEditing] = useState(false);
 
   const gptEngineSchema = z
     .object({
-      name: z.enum(["enjoyai", "openai"]),
+      name: z.enum(["openai", "ollama"]),
       models: z.object({
         default: z.string(),
         lookup: z.string().optional(),
         translate: z.string().optional(),
         analyze: z.string().optional(),
-        extractStory: z.string().optional(),
       }),
     })
     .required();
@@ -47,7 +44,7 @@ export const DefaultEngineSettings = () => {
   const form = useForm<z.infer<typeof gptEngineSchema>>({
     resolver: zodResolver(gptEngineSchema),
     values: {
-      name: currentGptEngine.name as "enjoyai" | "openai",
+      name: currentGptEngine.name === "ollama" ? "ollama" : "openai",
       models: currentGptEngine.models || {},
     },
   });
@@ -57,9 +54,30 @@ export const DefaultEngineSettings = () => {
       const customModels = openai?.models?.split(",")?.filter(Boolean);
 
       return customModels?.length ? customModels : providers.openai.models;
-    } else {
-      return providers.enjoyai.models;
+    } else if (form.watch("name") === "ollama") {
+      return providers.ollama.models;
     }
+
+    return [];
+  };
+
+  const refreshProviders = async () => {
+    const nextProviders: Record<string, any> = {
+      ...GPT_PROVIDERS,
+      openai: { ...GPT_PROVIDERS.openai },
+      ollama: { ...GPT_PROVIDERS.ollama },
+    };
+
+    try {
+      const response = await fetch(`${nextProviders.ollama.baseUrl}/api/tags`);
+      nextProviders.ollama.models = (await response.json()).models.map(
+        (m: any) => m.name
+      );
+    } catch (error) {
+      console.warn(`No ollama server found: ${error.message}`);
+    }
+
+    setProviders(nextProviders);
   };
 
   const onSubmit = async (data: z.infer<typeof gptEngineSchema>) => {
@@ -86,14 +104,7 @@ export const DefaultEngineSettings = () => {
   };
 
   useEffect(() => {
-    webApi
-      .config("gpt_providers")
-      .then((data) => {
-        setProviders(data);
-      })
-      .catch((error) => {
-        console.error(error);
-      });
+    refreshProviders();
   }, []);
 
   return (
@@ -131,16 +142,14 @@ export const DefaultEngineSettings = () => {
                           ></SelectValue>
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="enjoyai">EnjoyAI</SelectItem>
                           <SelectItem value="openai">OpenAI</SelectItem>
+                          <SelectItem value="ollama">Ollama</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                     <FormMessage />
                     <div className="text-xs text-muted-foreground">
                       {form.watch("name") === "openai" && t("openAiEngineTips")}
-                      {form.watch("name") === "enjoyai" &&
-                        t("enjoyAiEngineTips")}
                     </div>
                   </FormItem>
                 )}
@@ -248,37 +257,6 @@ export const DefaultEngineSettings = () => {
                         <div className="flex items-center space-x-2">
                           <FormLabel className="min-w-max">
                             {t("analyzeAiModel")}:
-                          </FormLabel>
-                          <Select
-                            value={field.value}
-                            disabled={!editing}
-                            onValueChange={field.onChange}
-                          >
-                            <SelectTrigger className="min-w-fit">
-                              <SelectValue
-                                placeholder={t("leaveEmptyToUseDefault")}
-                              ></SelectValue>
-                            </SelectTrigger>
-                            <SelectContent>
-                              {modelOptions().map((model: string) => (
-                                <SelectItem key={model} value={model}>
-                                  {model}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="models.extractStory"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex items-center space-x-2">
-                          <FormLabel className="min-w-max">
-                            {t("extractStoryAiModel")}:
                           </FormLabel>
                           <Select
                             value={field.value}

@@ -17,7 +17,11 @@ import log from "@main/logger";
 import { ChatAgent, ChatMember, ChatMessage } from "@main/db/models";
 import mainWindow from "@main/window";
 import { t } from "i18next";
-import { ChatAgentTypeEnum, ChatTypeEnum } from "@/types/enums";
+import {
+  ChatAgentTypeEnum,
+  ChatTypeEnum,
+  SttEngineOptionEnum,
+} from "@/types/enums";
 
 const logger = log.scope("db/models/chat");
 @Table({
@@ -90,6 +94,21 @@ export class Chat extends Model<Chat> {
     return this.config?.sttEngine;
   }
 
+  static normalizeConfig(config: any = {}) {
+    const nextConfig = { ...config };
+    const sttEngine = nextConfig.sttEngine || nextConfig.stt;
+    delete nextConfig.stt;
+
+    nextConfig.sttEngine = [
+      SttEngineOptionEnum.LOCAL,
+      SttEngineOptionEnum.OPENAI,
+    ].includes(sttEngine)
+      ? sttEngine
+      : SttEngineOptionEnum.LOCAL;
+
+    return nextConfig;
+  }
+
   @AfterCreate
   static async notifyForCreate(chat: Chat) {
     Chat.notify(chat, "create");
@@ -120,6 +139,11 @@ export class Chat extends Model<Chat> {
       action,
       record: chatData,
     });
+  }
+
+  @BeforeSave
+  static normalizeBeforeSave(chat: Chat) {
+    chat.config = Chat.normalizeConfig(chat.config);
   }
 
   @BeforeSave

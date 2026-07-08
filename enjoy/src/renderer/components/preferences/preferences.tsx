@@ -6,8 +6,6 @@ import {
   Appearance,
   DefaultEngineSettings,
   Hotkeys,
-  UserSettings,
-  BalanceSettings,
   LibrarySettings,
   SttSettings,
   TtsSettings,
@@ -25,7 +23,6 @@ import {
 } from "@renderer/components";
 import { useState } from "react";
 import { Tooltip } from "react-tooltip";
-import { EmailSettings } from "./email-settings";
 
 export const Preferences = () => {
   const TABS = [
@@ -81,6 +78,10 @@ export const Preferences = () => {
           <Separator />
           <OpenaiSettings />
           <Separator />
+          <LibrarySettings />
+          <Separator />
+          <DiskUsage />
+          <Separator />
           <RecorderSettings />
           <Separator />
           <ResetSettings />
@@ -88,27 +89,6 @@ export const Preferences = () => {
           <ResetAllSettings />
           <Separator />
         </>
-      ),
-    },
-    {
-      value: "account",
-      label: t("accountSettingsShort"),
-      component: () => (
-        <div className="pr-1">
-          <div className="font-semibold mb-4 capitilized">
-            {t("accountSettings")}
-          </div>
-          <UserSettings />
-          <Separator />
-          <LibrarySettings />
-          <Separator />
-          <DiskUsage />
-          <Separator />
-          <EmailSettings />
-          <Separator />
-          <BalanceSettings />
-          <Separator />
-        </div>
       ),
     },
     {

@@ -4,24 +4,31 @@ import {
 } from "@renderer/context";
 import { useContext } from "react";
 import OpenAI from "openai";
-import * as sdk from "microsoft-cognitiveservices-speech-sdk";
 import { t } from "i18next";
 
 export const useSpeech = () => {
-  const { EnjoyApp, webApi, user, apiUrl, learningLanguage } = useContext(
-    AppSettingsProviderContext
-  );
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { openai, ttsConfig } = useContext(AISettingsProviderContext);
 
+  const normalizeOpenaiTtsModel = (model?: string) => {
+    const normalized = model?.replace(/^openai\//, "");
+    return ["tts-1", "tts-1-hd"].includes(normalized) ? normalized : "tts-1";
+  };
+
   const tts = async (params: Partial<SpeechType>) => {
-    const { configuration } = params;
-    const { engine, model, voice } = configuration || ttsConfig;
+    const configuration = params.configuration || ttsConfig;
+    const { engine, voice } = configuration;
+    const model = normalizeOpenaiTtsModel(configuration.model);
 
     let buffer;
-    if (model.match(/^(openai|tts-)/)) {
-      buffer = await openaiTTS(params);
-    } else if (model.startsWith("azure")) {
-      buffer = await azureTTS(params);
+    if (engine === "openai") {
+      buffer = await openaiTTS({
+        ...params,
+        configuration: {
+          ...configuration,
+          model,
+        },
+      });
     }
 
     return EnjoyApp.speeches.create(
@@ -55,14 +62,7 @@ export const useSpeech = () => {
 
     let client: OpenAI;
 
-    if (engine === "enjoyai") {
-      client = new OpenAI({
-        apiKey: user.accessToken,
-        baseURL: `${apiUrl}/api/ai`,
-        dangerouslyAllowBrowser: true,
-        maxRetries: 1,
-      });
-    } else if (openai) {
+    if (engine === "openai" && openai?.key) {
       client = new OpenAI({
         apiKey: openai.key,
         baseURL: baseUrl || openai.baseUrl,
@@ -75,54 +75,11 @@ export const useSpeech = () => {
 
     const file = await client.audio.speech.create({
       input: params.text,
-      model: model.replace("openai/", ""),
+      model: normalizeOpenaiTtsModel(model),
       voice,
     });
 
     return file.arrayBuffer();
-  };
-
-  const azureTTS = async (
-    params: Partial<SpeechType>
-  ): Promise<ArrayBuffer> => {
-    const { configuration = ttsConfig, text } = params;
-    const { model, voice } = configuration;
-
-    if (model !== "azure/speech") return;
-
-    const { id, token, region } = await webApi.generateSpeechToken({
-      purpose: "tts",
-      input: text,
-    });
-    const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(token, region);
-    speechConfig.speechRecognitionLanguage = learningLanguage;
-    speechConfig.speechSynthesisVoiceName = voice;
-
-    // const speechSynthesizer = new sdk.SpeechSynthesizer(speechConfig, sdk.AudioConfig.fromDefaultSpeakerOutput());
-    // Do not playback audio when transcribed
-    const speechSynthesizer = new sdk.SpeechSynthesizer(speechConfig, null);
-
-    return new Promise((resolve, reject) => {
-      speechSynthesizer.speakTextAsync(
-        text,
-        (result) => {
-          speechSynthesizer.close();
-
-          if (result && result.audioData) {
-            webApi.consumeSpeechToken(id);
-            resolve(result.audioData);
-          } else {
-            webApi.revokeSpeechToken(id);
-            reject(result);
-          }
-        },
-        (error) => {
-          speechSynthesizer.close();
-          webApi.revokeSpeechToken(id);
-          reject(error);
-        }
-      );
-    });
   };
 
   return {

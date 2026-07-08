@@ -47,7 +47,6 @@ class SegmentsHandler {
   private async sync(_event: IpcMainEvent, id: string) {
     const segment = await Segment.findByPk(id);
     await segment.sync();
-    await segment.upload();
     return segment.toJSON();
   }
 

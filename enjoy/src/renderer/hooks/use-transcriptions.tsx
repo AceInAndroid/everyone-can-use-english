@@ -13,9 +13,7 @@ import { t } from "i18next";
 
 export const useTranscriptions = (media: AudioType | VideoType) => {
   const { sttEngine } = useContext(AISettingsProviderContext);
-  const { EnjoyApp, learningLanguage, webApi } = useContext(
-    AppSettingsProviderContext
-  );
+  const { EnjoyApp, learningLanguage } = useContext(AppSettingsProviderContext);
   const { addDblistener, removeDbListener } = useContext(DbProviderContext);
   const [transcription, setTranscription] = useState<TranscriptionType>(null);
   const { transcribe, output } = useTranscribe();
@@ -58,25 +56,8 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
           };
         }
 
-        const transcriptionOnline = await findTranscriptionOnline();
-        if (transcriptionOnline && !tr?.result?.timeline) {
-          await EnjoyApp.transcriptions.update(tr.id, {
-            state: "finished",
-            result: transcriptionOnline.result,
-            engine: transcriptionOnline.engine,
-            model: transcriptionOnline.model,
-            language: transcriptionOnline.language || media.language,
-          });
-          setTranscription(transcriptionOnline);
-          toast.success(t("downloadedTranscriptionFromCloud"));
-          if (transcribing) {
-            abortGenerateTranscription();
-          }
-          return transcriptionOnline;
-        } else {
-          setTranscription(tr);
-          return tr;
-        }
+        setTranscription(tr);
+        return tr;
       } catch (err) {
         console.error(err);
         return null;
@@ -84,31 +65,6 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
         setCreating(false);
       }
     };
-
-  const findTranscriptionOnline = async () => {
-    if (!media) return;
-
-    try {
-      const result = await webApi.transcriptions({
-        targetMd5: media.md5,
-        items: 10,
-      });
-      if (result.transcriptions.length) {
-        for (const tr of result.transcriptions) {
-          if (validateTranscription(tr)) {
-            return tr;
-          } else {
-            console.warn(`Invalid transcription: ${tr.id}`);
-          }
-        }
-      } else {
-        return null;
-      }
-    } catch (err) {
-      console.error(err);
-      return null;
-    }
-  };
 
   const generateTranscription = async (params?: {
     originalText?: string;
@@ -256,21 +212,6 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
       );
     }
     return timeline;
-  };
-
-  const validateTranscription = (transcription: TranscriptionType) => {
-    if (!transcription) return;
-
-    const { timeline, transcript } = transcription.result;
-    if (!timeline || !transcript) {
-      return false;
-    }
-
-    if (timeline[0]?.type !== "sentence") {
-      return false;
-    }
-
-    return true;
   };
 
   /*

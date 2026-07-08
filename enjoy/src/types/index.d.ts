@@ -19,10 +19,10 @@ declare module "segment" {
   export = Segment;
 }
 
-type SupportedLlmProviderType = "enjoyai" | "openai";
+type SupportedLlmProviderType = "openai";
 
 type LlmProviderType = {
-  name?: "enjoyai" | "openai";
+  name?: "openai";
   key?: string;
   model?: string;
   baseUrl?: string;
@@ -201,7 +201,6 @@ type GptEngineSettingType = {
     lookup?: string;
     translate?: string;
     analyze?: string;
-    extractStory?: string;
   };
   baseUrl?: string;
   key?: string;

@@ -171,12 +171,6 @@ export const TranscriptionCreateForm = (props: {
                   <SelectItem value={SttEngineOptionEnum.LOCAL}>
                     {t("local")}
                   </SelectItem>
-                  <SelectItem value={SttEngineOptionEnum.ENJOY_AZURE}>
-                    {t("enjoyAzure")}
-                  </SelectItem>
-                  <SelectItem value={SttEngineOptionEnum.ENJOY_CLOUDFLARE}>
-                    {t("enjoyCloudflare")}
-                  </SelectItem>
                   <SelectItem value={SttEngineOptionEnum.OPENAI}>
                     OpenAI
                   </SelectItem>
@@ -202,11 +196,6 @@ export const TranscriptionCreateForm = (props: {
                     </>
                   )}
 
-                {form.watch("service") === SttEngineOptionEnum.ENJOY_AZURE &&
-                  t("enjoyAzureSpeechToTextDescription")}
-                {form.watch("service") ===
-                  SttEngineOptionEnum.ENJOY_CLOUDFLARE &&
-                  t("enjoyCloudflareSpeechToTextDescription")}
                 {form.watch("service") === SttEngineOptionEnum.OPENAI &&
                   t("openaiSpeechToTextDescription")}
                 {form.watch("service") === "upload" &&

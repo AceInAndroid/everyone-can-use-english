@@ -14,7 +14,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  toast,
 } from "@renderer/components/ui";
 import { MoreHorizontalIcon } from "lucide-react";
 import Markdown from "react-markdown";
@@ -65,41 +64,12 @@ const NoteActionsDropdownMenu = (props: {
   note: NoteType;
   onEdit?: (note: NoteType) => void;
 }) => {
-  const { EnjoyApp, webApi } = useContext(AppSettingsProviderContext);
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { note, onEdit } = props;
   const [deleting, setDeleting] = useState(false);
-  const [sharing, setSharing] = useState(false);
 
   const handleDelete = () => {
     EnjoyApp.notes.delete(note.id);
-  };
-
-  const handleShare = async () => {
-    try {
-      if (
-        note.segment &&
-        (!note.segment.syncedAt || !note.segment.uploadedAt)
-      ) {
-        await EnjoyApp.segments.sync(note.segment.id);
-      }
-      if (!note.syncedAt) {
-        await EnjoyApp.notes.sync(note.id);
-      }
-    } catch (e) {
-      toast.error(t("shareFailed"), { description: e.message });
-    }
-
-    webApi
-      .createPost({
-        targetId: note.id,
-        targetType: "Note",
-      })
-      .then(() => {
-        toast.success(t("sharedSuccessfully"));
-      })
-      .catch((e) => {
-        toast.error(t("shareFailed"), { description: e.message });
-      });
   };
 
   return (
@@ -117,32 +87,11 @@ const NoteActionsDropdownMenu = (props: {
             </DropdownMenuItem>
           )}
 
-          <DropdownMenuItem onClick={() => setSharing(true)}>
-            {t("share")}
-          </DropdownMenuItem>
-
           <DropdownMenuItem onClick={() => setDeleting(true)}>
             {t("delete")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-
-      <AlertDialog open={sharing} onOpenChange={(value) => setSharing(value)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("shareNote")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("areYouSureToShareThisNoteToCommunity")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction asChild>
-              <Button onClick={handleShare}>{t("share")}</Button>
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       <AlertDialog open={deleting} onOpenChange={(value) => setDeleting(value)}>
         <AlertDialogContent>

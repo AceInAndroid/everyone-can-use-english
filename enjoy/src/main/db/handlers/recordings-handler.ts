@@ -171,20 +171,6 @@ class RecordingsHandler {
     }
   }
 
-  private async upload(_event: IpcMainEvent, id: string) {
-    const recording = await Recording.scope("withoutDeleted").findOne({
-      where: {
-        id,
-      },
-    });
-
-    if (!recording) {
-      throw new Error(t("models.recording.notFound"));
-    }
-
-    return await recording.upload();
-  }
-
   private async stats(
     event: IpcMainEvent,
     options: { from: string; to: string }
@@ -452,7 +438,6 @@ class RecordingsHandler {
     ipcMain.handle("recordings-create", this.create);
     ipcMain.handle("recordings-destroy", this.destroy);
     ipcMain.handle("recordings-destroy-bulk", this.destroyBulk);
-    ipcMain.handle("recordings-upload", this.upload);
     ipcMain.handle("recordings-stats", this.stats);
     ipcMain.handle("recordings-group-by-date", this.groupByDate);
     ipcMain.handle("recordings-group-by-target", this.groupByTarget);
@@ -469,7 +454,6 @@ class RecordingsHandler {
     ipcMain.removeHandler("recordings-create");
     ipcMain.removeHandler("recordings-destroy");
     ipcMain.removeHandler("recordings-destroy-bulk");
-    ipcMain.removeHandler("recordings-upload");
     ipcMain.removeHandler("recordings-stats");
     ipcMain.removeHandler("recordings-group-by-date");
     ipcMain.removeHandler("recordings-group-by-target");

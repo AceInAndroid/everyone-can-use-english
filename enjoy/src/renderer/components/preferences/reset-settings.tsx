@@ -9,7 +9,7 @@ export const ResetSettings = () => {
       <div className="">
         <div className="mb-2">{t("resetSettings")}</div>
         <div className="text-sm text-muted-foreground mb-2">
-          {t("logoutAndRemoveAllPersonalSettings")}
+          {t("resetSettingsConfirmation")}
         </div>
       </div>
 

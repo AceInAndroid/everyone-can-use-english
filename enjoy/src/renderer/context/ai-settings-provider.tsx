@@ -6,9 +6,6 @@ import {
 import { SttEngineOptionEnum, UserSettingKeyEnum } from "@/types/enums";
 import { GPT_PROVIDERS, TTS_PROVIDERS } from "@renderer/components";
 import { WHISPER_MODELS } from "@/constants";
-import log from "electron-log/renderer";
-
-const logger = log.scope("ai-settings-provider.tsx");
 
 type AISettingsProviderState = {
   sttEngine?: SttEngineOptionEnum;
@@ -26,6 +23,9 @@ type AISettingsProviderState = {
 };
 
 const initialState: AISettingsProviderState = {};
+const REMOVED_STT_ENGINES = ["azure", "cloudflare"].map(
+  (engine) => `enjoy_${engine}`
+);
 
 export const AISettingsProviderContext =
   createContext<AISettingsProviderState>(initialState);
@@ -35,20 +35,21 @@ export const AISettingsProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const { EnjoyApp, libraryPath, user, apiUrl, webApi, learningLanguage } =
-    useContext(AppSettingsProviderContext);
+  const { EnjoyApp, libraryPath, learningLanguage } = useContext(
+    AppSettingsProviderContext
+  );
   const [gptProviders, setGptProviders] = useState<any>(GPT_PROVIDERS);
   const [ttsProviders, setTtsProviders] = useState<any>(TTS_PROVIDERS);
   const db = useContext(DbProviderContext);
 
   const [sttEngine, setSttEngine] = useState<SttEngineOptionEnum>(
-    SttEngineOptionEnum.ENJOY_AZURE
+    SttEngineOptionEnum.LOCAL
   );
   const [ttsConfig, setTtsConfig] = useState<TtsConfigType>(null);
   const [echogardenSttConfig, setEchogardenSttConfig] =
     useState<EchogardenSttConfigType>(null);
   const [gptEngine, setGptEngine] = useState<GptEngineSettingType>({
-    name: "enjoyai",
+    name: "openai",
     models: {
       default: "gpt-4o",
     },
@@ -56,14 +57,11 @@ export const AISettingsProvider = ({
   const [openai, setOpenai] = useState<LlmProviderType>(null);
 
   const refreshGptProviders = async () => {
-    let providers = GPT_PROVIDERS;
-
-    try {
-      const config = await webApi.config("gpt_providers");
-      providers = Object.assign(providers, config);
-    } catch (e) {
-      console.warn(`Failed to fetch remote GPT config: ${e.message}`);
-    }
+    const providers: Record<string, any> = {
+      ...GPT_PROVIDERS,
+      openai: { ...GPT_PROVIDERS.openai },
+      ollama: { ...GPT_PROVIDERS.ollama },
+    };
 
     try {
       const response = await fetch(providers["ollama"]?.baseUrl + "/api/tags");
@@ -82,14 +80,10 @@ export const AISettingsProvider = ({
   };
 
   const refreshTtsProviders = async () => {
-    let providers = TTS_PROVIDERS;
-
-    try {
-      const config = await webApi.config("tts_providers_v2");
-      providers = Object.assign(providers, config);
-    } catch (e) {
-      console.warn(`Failed to fetch remote TTS config: ${e.message}`);
-    }
+    const providers: Record<string, any> = {
+      ...TTS_PROVIDERS,
+      openai: { ...TTS_PROVIDERS.openai },
+    };
 
     setTtsProviders({ ...providers });
   };
@@ -98,12 +92,29 @@ export const AISettingsProvider = ({
     let config = await EnjoyApp.userSettings.get(UserSettingKeyEnum.TTS_CONFIG);
     if (!config) {
       config = {
-        engine: "enjoyai",
-        model: "openai/tts-1",
+        engine: "openai",
+        model: "tts-1",
         voice: "alloy",
         language: learningLanguage,
       };
       EnjoyApp.userSettings.set(UserSettingKeyEnum.TTS_CONFIG, config);
+    } else if (config.engine === "enjoyai") {
+      const model = config.model?.replace(/^openai\//, "");
+      config = {
+        ...config,
+        engine: "openai",
+        model: ["tts-1", "tts-1-hd"].includes(model) ? model : "tts-1",
+      };
+      EnjoyApp.userSettings.set(UserSettingKeyEnum.TTS_CONFIG, config);
+    } else if (config.engine === "openai") {
+      const model = config.model?.replace(/^openai\//, "");
+      if (!["tts-1", "tts-1-hd"].includes(model)) {
+        config = {
+          ...config,
+          model: "tts-1",
+        };
+        EnjoyApp.userSettings.set(UserSettingKeyEnum.TTS_CONFIG, config);
+      }
     }
     setTtsConfig(config);
   };
@@ -197,7 +208,11 @@ export const AISettingsProvider = ({
       UserSettingKeyEnum.STT_ENGINE
     );
     if (_sttEngine) {
-      setSttEngine(_sttEngine);
+      if (REMOVED_STT_ENGINES.includes(_sttEngine)) {
+        handleSetSttEngine(SttEngineOptionEnum.LOCAL);
+      } else {
+        setSttEngine(_sttEngine);
+      }
     }
 
     const _openai = await EnjoyApp.userSettings.get(UserSettingKeyEnum.OPENAI);
@@ -209,7 +224,19 @@ export const AISettingsProvider = ({
       UserSettingKeyEnum.GPT_ENGINE
     );
     if (_gptEngine) {
-      setGptEngine(_gptEngine);
+      if (_gptEngine.name === "enjoyai") {
+        const engine = {
+          ..._gptEngine,
+          name: "openai",
+        };
+        EnjoyApp.userSettings
+          .set(UserSettingKeyEnum.GPT_ENGINE, engine)
+          .then(() => {
+            setGptEngine(engine);
+          });
+      } else {
+        setGptEngine(_gptEngine);
+      }
     } else if (_openai?.key) {
       const engine = {
         name: "openai",
@@ -224,7 +251,7 @@ export const AISettingsProvider = ({
         });
     } else {
       const engine = {
-        name: "enjoyai",
+        name: "openai",
         models: {
           default: "gpt-4o",
         },
@@ -258,13 +285,10 @@ export const AISettingsProvider = ({
         currentGptEngine:
           gptEngine.name === "openai"
             ? Object.assign(gptEngine, {
-                key: openai.key,
-                baseUrl: openai.baseUrl,
+                key: openai?.key,
+                baseUrl: openai?.baseUrl,
               })
-            : Object.assign(gptEngine, {
-                key: user?.accessToken,
-                baseUrl: `${apiUrl}/api/ai`,
-              }),
+            : gptEngine,
         openai,
         setOpenai: (config: LlmProviderType) => handleSetOpenai(config),
         echogardenSttConfig,

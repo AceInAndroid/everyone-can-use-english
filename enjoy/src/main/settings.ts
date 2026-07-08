@@ -5,6 +5,12 @@ import path from "path";
 import fs from "fs-extra";
 import { AppSettingsKeyEnum } from "@/types/enums";
 
+const LOCAL_USER: UserType = {
+  id: "00000000",
+  name: "Local User",
+};
+const LOCAL_STORAGE_NAMESPACE = LOCAL_USER.id;
+
 if (process.env.SETTINGS_PATH) {
   settings.configure({
     dir: process.env.SETTINGS_PATH,
@@ -50,14 +56,43 @@ const dbPath = () => {
   return path.join(userDataPath(), dbName);
 };
 
-const userDataPath = () => {
-  const userId = settings.getSync("user.id");
-  if (!userId) return null;
+const localStorageNamespace = () => LOCAL_STORAGE_NAMESPACE;
 
-  const userData = path.join(libraryPath(), userId.toString());
+const userDataPath = () => {
+  ensureLocalUser();
+  const userData = path.join(libraryPath(), localStorageNamespace());
   fs.ensureDirSync(userData);
 
   return userData;
+};
+
+const migrateLegacyUserData = (legacyUserId?: string) => {
+  if (!legacyUserId || legacyUserId === localStorageNamespace()) return;
+
+  const library = libraryPath();
+  const legacyUserData = path.join(library, legacyUserId.toString());
+  const localUserData = path.join(library, localStorageNamespace());
+  if (!fs.existsSync(legacyUserData)) return;
+
+  fs.ensureDirSync(localUserData);
+  fs.copySync(legacyUserData, localUserData, {
+    overwrite: false,
+    errorOnExist: false,
+  });
+};
+
+const ensureLocalUser = (): UserType => {
+  const currentUser = settings.getSync(AppSettingsKeyEnum.USER) as
+    | UserType
+    | undefined;
+  migrateLegacyUserData(currentUser?.id?.toString());
+
+  const localUser = {
+    ...LOCAL_USER,
+    name: currentUser?.name || LOCAL_USER.name,
+  };
+  settings.setSync(AppSettingsKeyEnum.USER, localUser);
+  return localUser;
 };
 
 const apiUrl = () => {
@@ -65,14 +100,10 @@ const apiUrl = () => {
   return process.env.WEB_API_URL || url || WEB_API_URL;
 };
 
-// scan library directory and get all user data directories
-// the name of user data directory is the user id, and they are all numbers and 8 digits
+// Login/account has been removed; only the fixed local library namespace is active.
 const sessions = () => {
-  const library = libraryPath();
-  const sessions = fs.readdirSync(library).filter((dir) => {
-    return dir.match(/^\d{8}$/);
-  });
-  return sessions.map((id) => ({ id: parseInt(id), name: id }));
+  ensureLocalUser();
+  return [{ id: localStorageNamespace(), name: localStorageNamespace() }];
 };
 
 export default {
@@ -93,11 +124,14 @@ export default {
     });
 
     ipcMain.handle("app-settings-get-user", (_event) => {
-      return settings.getSync(AppSettingsKeyEnum.USER);
+      return ensureLocalUser();
     });
 
     ipcMain.handle("app-settings-set-user", (_event, user) => {
-      settings.setSync(AppSettingsKeyEnum.USER, user);
+      settings.setSync(AppSettingsKeyEnum.USER, {
+        ...LOCAL_USER,
+        name: user?.name || LOCAL_USER.name,
+      });
     });
 
     ipcMain.handle("app-settings-get-user-data-path", (_event) => {
@@ -118,6 +152,7 @@ export default {
   },
   cachePath,
   libraryPath,
+  localStorageNamespace,
   userDataPath,
   dbPath,
   apiUrl,

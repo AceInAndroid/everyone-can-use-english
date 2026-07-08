@@ -17,10 +17,6 @@ export * from "./disk-usage";
 export * from "./stt-settings";
 export * from "./tts-settings";
 
-export * from "./user-settings";
-export * from "./email-settings";
-export * from "./balance-settings";
-
 export * from "./reset-settings";
 export * from "./reset-all-settings";
 export * from "./reset-all-button";
@@ -37,5 +33,3 @@ export * from "./vocabulary-settings";
 export * from "./dict-settings";
 
 export * from "./echogarden-stt-settings";
-
-export * from "./deposit";

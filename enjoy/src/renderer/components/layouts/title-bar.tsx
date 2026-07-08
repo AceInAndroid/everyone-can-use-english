@@ -35,9 +35,10 @@ import {
   XIcon,
 } from "lucide-react";
 import { useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 
 const INSTALL_URL = "https://1000h.org/enjoy-app/install.html";
+const FEEDBACK_URL =
+  "https://github.com/AceInAndroid/everyone-can-use-english/issues";
 
 export const TitleBar = () => {
   const [isMaximized, setIsMaximized] = useState(false);
@@ -51,7 +52,6 @@ export const TitleBar = () => {
     AppSettingsProviderContext
   );
   const { active, setActive } = useContext(CopilotProviderContext);
-  const navigate = useNavigate();
 
   const checkUpdate = () => {
     if (platform === "linux") {
@@ -190,10 +190,11 @@ export const TitleBar = () => {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuItem
-              onClick={() => navigate("/community")}
+              onClick={() => EnjoyApp.shell.openExternal(FEEDBACK_URL)}
               className="flex justify-between space-x-4"
             >
               <span>{t("feedback")}</span>
+              <ExternalLinkIcon className="size-4" />
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem disabled>

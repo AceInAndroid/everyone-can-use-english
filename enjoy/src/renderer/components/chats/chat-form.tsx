@@ -272,14 +272,6 @@ export const ChatForm = (props: { chat: ChatType; onFinish?: () => void }) => {
                           <SelectItem value={SttEngineOptionEnum.LOCAL}>
                             {t("local")}
                           </SelectItem>
-                          <SelectItem value={SttEngineOptionEnum.ENJOY_AZURE}>
-                            {t("enjoyAzure")}
-                          </SelectItem>
-                          <SelectItem
-                            value={SttEngineOptionEnum.ENJOY_CLOUDFLARE}
-                          >
-                            {t("enjoyCloudflare")}
-                          </SelectItem>
                           <SelectItem value={SttEngineOptionEnum.OPENAI}>
                             {t("openai")}
                           </SelectItem>
@@ -292,12 +284,6 @@ export const ChatForm = (props: { chat: ChatType; onFinish?: () => void }) => {
                         {form.watch("config.sttEngine") ===
                           SttEngineOptionEnum.LOCAL &&
                           t("localSpeechToTextDescription")}
-                        {form.watch("config.sttEngine") ===
-                          SttEngineOptionEnum.ENJOY_AZURE &&
-                          t("enjoyAzureSpeechToTextDescription")}
-                        {form.watch("config.sttEngine") ===
-                          SttEngineOptionEnum.ENJOY_CLOUDFLARE &&
-                          t("enjoyCloudflareSpeechToTextDescription")}
                         {form.watch("config.sttEngine") ===
                           SttEngineOptionEnum.OPENAI &&
                           t("openaiSpeechToTextDescription")}

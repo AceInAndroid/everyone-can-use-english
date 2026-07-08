@@ -5,7 +5,6 @@ import {
 import { useContext } from "react";
 import {
   lookupCommand,
-  extractStoryCommand,
   translateCommand,
   analyzeCommand,
   punctuateCommand,
@@ -79,21 +78,6 @@ export const useAiCommand = () => {
     }
 
     return result;
-  };
-
-  const extractStory = async (story: StoryType) => {
-    const res = await extractStoryCommand(story.content, learningLanguage, {
-      key: currentGptEngine.key,
-      modelName:
-        currentGptEngine.models.extractStory || currentGptEngine.models.default,
-      baseUrl: currentGptEngine.baseUrl,
-    });
-    const { words = [], idioms = [] } = res;
-
-    return webApi.extractVocabularyFromStory(story.id, {
-      words,
-      idioms,
-    });
   };
 
   const translate = async (
@@ -235,7 +219,6 @@ export const useAiCommand = () => {
 
   return {
     lookupWord,
-    extractStory,
     translate,
     analyzeText,
     punctuateText,

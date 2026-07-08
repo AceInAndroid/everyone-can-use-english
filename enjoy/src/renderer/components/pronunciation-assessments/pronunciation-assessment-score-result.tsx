@@ -95,7 +95,7 @@ export const PronunciationAssessmentScoreResult = (props: {
         </div>
       </div>
 
-      {!pronunciationScore && (
+      {!pronunciationScore && onAssess && (
         <div className="w-full h-full absolute z-30 bg-background/10 flex items-center justify-center">
           <Button size="lg" disabled={assessing} onClick={onAssess}>
             {assessing && (

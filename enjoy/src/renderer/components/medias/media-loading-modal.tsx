@@ -8,14 +8,10 @@ import {
   AlertDialogContent,
   AlertDialogFooter,
   Button,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@renderer/components/ui";
 import { CircleAlertIcon, LoaderIcon } from "lucide-react";
 import { t } from "i18next";
-import { TranscriptionCreateForm, TranscriptionsList } from "../transcriptions";
+import { TranscriptionCreateForm } from "../transcriptions";
 import { SttEngineOptionEnum } from "@/types/enums";
 
 export const MediaLoadingModal = () => {
@@ -52,34 +48,21 @@ const LoadingContent = () => {
     // Decoded and transcription created but not ready
     if (transcription && !transcription.result?.timeline) {
       return (
-        <Tabs defaultValue="transcribe">
-          <TabsList className="w-full grid grid-cols-2 mb-4">
-            <TabsTrigger value="transcribe">{t("transcribe")}</TabsTrigger>
-            <TabsTrigger value="download">
-              {t("downloadTranscript")}
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="transcribe">
-            <TranscriptionCreateForm
-              originalText={transcription?.result?.originalText}
-              onSubmit={(data) => {
-                generateTranscription({
-                  originalText: data.text,
-                  language: data.language,
-                  service: data.service as SttEngineOptionEnum | "upload",
-                  isolate: data.isolate,
-                });
-              }}
-              onCancel={onCancel}
-              transcribing={transcribing}
-              transcribingProgress={transcribingProgress}
-              transcribingOutput={transcribingOutput}
-            />
-          </TabsContent>
-          <TabsContent value="download">
-            <TranscriptionsList media={media} transcription={transcription} />
-          </TabsContent>
-        </Tabs>
+        <TranscriptionCreateForm
+          originalText={transcription?.result?.originalText}
+          onSubmit={(data) => {
+            generateTranscription({
+              originalText: data.text,
+              language: data.language,
+              service: data.service as SttEngineOptionEnum | "upload",
+              isolate: data.isolate,
+            });
+          }}
+          onCancel={onCancel}
+          transcribing={transcribing}
+          transcribingProgress={transcribingProgress}
+          transcribingOutput={transcribingOutput}
+        />
       );
     } else {
       return (

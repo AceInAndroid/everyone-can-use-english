@@ -9,21 +9,11 @@ import Audio from "./pages/audio";
 import Video from "./pages/video";
 import Audios from "./pages/audios";
 import Videos from "./pages/videos";
-import Stories from "./pages/stories";
-import Story from "./pages/story";
 import Documents from "./pages/documents";
 import Document from "./pages/document";
-import Profile from "./pages/profile";
-import User from "./pages/user";
 import Home from "./pages/home";
-import Community from "./pages/community";
-import StoryPreview from "./pages/story-preview";
 import Notes from "./pages/notes";
 import PronunciationAssessmentsIndex from "./pages/pronunciation-assessments/index";
-import PronunciationAssessmentsNew from "./pages/pronunciation-assessments/new";
-import Courses from "./pages/courses/index";
-import Course from "./pages/courses/show";
-import Chapter from "./pages/courses/chapter";
 import Chats from "./pages/chats";
 import { ProtectedPage } from "./pages/protected-page";
 
@@ -51,54 +41,6 @@ export default createHashRouter([
         ),
       },
       {
-        path: "/courses",
-        element: (
-          <ProtectedPage>
-            <Courses />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/courses/:id",
-        element: (
-          <ProtectedPage>
-            <Course />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/courses/:id/chapters/:sequence",
-        element: (
-          <ProtectedPage>
-            <Chapter />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/community",
-        element: (
-          <ProtectedPage>
-            <Community />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/users/:id",
-        element: (
-          <ProtectedPage>
-            <User />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/profile",
-        element: (
-          <ProtectedPage>
-            <Profile />
-          </ProtectedPage>
-        ),
-      },
-      {
         path: "/conversations",
         element: (
           <ProtectedPage>
@@ -119,14 +61,6 @@ export default createHashRouter([
         element: (
           <ProtectedPage>
             <PronunciationAssessmentsIndex />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/pronunciation_assessments/new",
-        element: (
-          <ProtectedPage>
-            <PronunciationAssessmentsNew />
           </ProtectedPage>
         ),
       },
@@ -183,30 +117,6 @@ export default createHashRouter([
         element: (
           <ProtectedPage>
             <Document />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/stories",
-        element: (
-          <ProtectedPage>
-            <Stories />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/stories/:id",
-        element: (
-          <ProtectedPage>
-            <Story />
-          </ProtectedPage>
-        ),
-      },
-      {
-        path: "/stories/preview/:uri",
-        element: (
-          <ProtectedPage>
-            <StoryPreview />
           </ProtectedPage>
         ),
       },

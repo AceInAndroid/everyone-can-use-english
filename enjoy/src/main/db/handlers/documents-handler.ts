@@ -115,15 +115,6 @@ class DocumentsHandler {
     return await document.destroy();
   }
 
-  private async upload(event: IpcMainEvent, id: string) {
-    const document = await Document.findByPk(id);
-    if (!document) {
-      throw new Error(t("models.document.notFound"));
-    }
-
-    return await document.upload();
-  }
-
   private async cleanUp() {
     const documents = await Document.findAll();
 
@@ -140,7 +131,6 @@ class DocumentsHandler {
     ipcMain.handle("documents-create", this.create);
     ipcMain.handle("documents-update", this.update);
     ipcMain.handle("documents-destroy", this.destroy);
-    ipcMain.handle("documents-upload", this.upload);
     ipcMain.handle("documents-clean-up", this.cleanUp);
   }
 
@@ -150,7 +140,6 @@ class DocumentsHandler {
     ipcMain.removeHandler("documents-create");
     ipcMain.removeHandler("documents-update");
     ipcMain.removeHandler("documents-destroy");
-    ipcMain.removeHandler("documents-upload");
     ipcMain.removeHandler("documents-clean-up");
   }
 }

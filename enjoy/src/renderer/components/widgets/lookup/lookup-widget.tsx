@@ -29,15 +29,10 @@ import {
   ChevronLeft,
   ChevronFirst,
   SpeakerIcon,
-  MicIcon,
-  SquareIcon,
-  LoaderIcon,
   Volume2Icon,
   CheckIcon,
 } from "lucide-react";
-import { useAudioRecorder } from "react-audio-voice-recorder";
 import { t } from "i18next";
-import { usePronunciationAssessments } from "@/renderer/hooks";
 
 export const LookupWidget = () => {
   const { EnjoyApp } = useContext(AppSettingsProviderContext);
@@ -194,36 +189,11 @@ LookupWidget.displayName = "LookupWidget";
 
 export const VocabularyPronunciationAssessment = (props: { word: string }) => {
   const { word } = props;
-  const { EnjoyApp, recorderConfig, learningLanguage } = useContext(
-    AppSettingsProviderContext
-  );
-  const {
-    startRecording,
-    stopRecording,
-    recordingBlob,
-    isRecording,
-    recordingTime,
-  } = useAudioRecorder(recorderConfig, (exception) => {
-    toast.error(exception.message);
-  });
-  const { createAssessment } = usePronunciationAssessments();
-  const [access, setAccess] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const [recording, setRecording] = useState<RecordingType>();
   const [assessment, setAssessment] = useState<PronunciationAssessmentType>();
   const [open, setOpen] = useState(false);
   const audio = useRef<HTMLAudioElement>(null);
-
-  const askForMediaAccess = () => {
-    EnjoyApp.system.preferences.mediaAccess("microphone").then((access) => {
-      if (access) {
-        setAccess(true);
-      } else {
-        setAccess(false);
-        toast.warning(t("noMicrophoneAccess"));
-      }
-    });
-  };
 
   const findRecording = () => {
     EnjoyApp.recordings
@@ -238,44 +208,7 @@ export const VocabularyPronunciationAssessment = (props: { word: string }) => {
       });
   };
 
-  const onRecorded = async (blob: Blob) => {
-    if (!blob) return;
-
-    let recording: RecordingType;
-    try {
-      recording = await EnjoyApp.recordings.create({
-        language: learningLanguage,
-        blob: {
-          type: recordingBlob.type.split(";")[0],
-          arrayBuffer: await blob.arrayBuffer(),
-        },
-        referenceText: word,
-      });
-    } catch (err) {
-      toast.error(err.message);
-    }
-    if (!recording) return;
-
-    setSubmitting(true);
-    createAssessment({
-      language: learningLanguage,
-      reference: word,
-      recording,
-    })
-      .then((assessment) => {
-        setAssessment(assessment);
-        setRecording(recording);
-        setOpen(true);
-      })
-      .catch((err) => {
-        toast.error(err.message);
-        EnjoyApp.recordings.destroy(recording.id);
-      })
-      .finally(() => setSubmitting(false));
-  };
-
   useEffect(() => {
-    askForMediaAccess();
     findRecording();
   }, [word]);
 
@@ -292,56 +225,12 @@ export const VocabularyPronunciationAssessment = (props: { word: string }) => {
     };
   }, [recording]);
 
-  useEffect(() => {
-    if (recordingBlob) {
-      onRecorded(recordingBlob);
-    }
-  }, [recordingBlob]);
-
-  /**
-   * Auto stop recording after 5 seconds
-   */
-  useEffect(() => {
-    if (!isRecording) return;
-
-    if (recordingTime >= 5) {
-      stopRecording();
-    }
-  }, [recordingTime]);
-
   if (!word) return null;
-  if (!access) return null;
-
-  if (submitting) {
-    return (
-      <Button variant="ghost" className="size-6 p-0" disabled>
-        <LoaderIcon className="size-4 animate-spin" />
-      </Button>
-    );
-  }
-
-  if (isRecording) {
-    return (
-      <Button
-        variant="ghost"
-        className="rounded-full size-6 p-0 bg-red-500 hover:bg-red-500/90"
-        onClick={stopRecording}
-      >
-        <SquareIcon fill="white" className="size-3 text-white" />
-      </Button>
-    );
-  }
+  if (!recording && !assessment) return null;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <div className="flex items-center gap-1">
-        <Button
-          variant="ghost"
-          className="rounded-full size-6 p-0 bg-red-500 hover:bg-red-500/90"
-          onClick={startRecording}
-        >
-          <MicIcon className="size-4 text-white" />
-        </Button>
         {recording && (
           <Button
             variant="ghost"

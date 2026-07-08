@@ -16,7 +16,7 @@ import mainWindow from "@main/window";
 import log from "@main/logger";
 import { Client } from "@/api";
 import settings from "@main/settings";
-import { Segment, UserSetting } from "@main/db/models";
+import { Segment } from "@main/db/models";
 
 const logger = log.scope("db/models/note");
 @Table({
@@ -61,7 +61,6 @@ export class Note extends Model<Note> {
 
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger,
     });
 
@@ -75,10 +74,11 @@ export class Note extends Model<Note> {
       await segment.sync();
     }
 
-    return webApi.syncNote(this.toJSON()).then(() => {
-      const now = new Date();
-      this.update({ syncedAt: now, updatedAt: now });
-    });
+    await webApi.syncNote(this.toJSON());
+    await this.update(
+      { syncedAt: new Date() },
+      { hooks: false, silent: true }
+    );
   }
 
   @AfterFind
@@ -123,7 +123,6 @@ export class Note extends Model<Note> {
   static async destroyRemote(note: Note) {
     const webApi = new Client({
       baseUrl: settings.apiUrl(),
-      accessToken: (await UserSetting.accessToken()) as string,
       logger,
     });
 

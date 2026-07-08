@@ -91,15 +91,6 @@ type EnjoyAppType = {
     hide: () => Promise<void>;
     remove: () => Promise<void>;
     scrape: (url: string) => Promise<void>;
-    loadCommunity: (
-      bounds: { x: number; y: number; width: number; height: number },
-      options?: {
-        navigatable?: boolean;
-        accessToken?: string;
-        url?: string;
-        ssoUrl?: string;
-      }
-    ) => Promise<void>;
     resize: (bounds: {
       x: number;
       y: number;
@@ -206,7 +197,6 @@ type EnjoyAppType = {
     create: (uri: string, params?: any) => Promise<AudioType>;
     update: (id: string, params: any) => Promise<AudioType | undefined>;
     destroy: (id: string) => Promise<undefined>;
-    upload: (id: string) => Promise<void>;
     crop: (
       id: string,
       params: { startTime: number; endTime: number }
@@ -219,7 +209,6 @@ type EnjoyAppType = {
     create: (uri: string, params?: any) => Promise<VideoType>;
     update: (id: string, params: any) => Promise<VideoType | undefined>;
     destroy: (id: string) => Promise<undefined>;
-    upload: (id: string) => Promise<void>;
     crop: (
       id: string,
       params: { startTime: number; endTime: number }
@@ -241,7 +230,6 @@ type EnjoyAppType = {
       scoreLessThan80: string[];
       all: string[];
     }>;
-    upload: (id: string) => Promise<void>;
     stats: (params: { from: string; to: string }) => Promise<{
       count: number;
       duration: number;
@@ -447,7 +435,6 @@ type EnjoyAppType = {
     create: (params: any) => Promise<DocumentEType>;
     update: (id: string, params: any) => Promise<DocumentEType>;
     destroy: (id: string) => Promise<void>;
-    upload: (id: string) => Promise<void>;
     cleanUp: () => Promise<void>;
   };
 };

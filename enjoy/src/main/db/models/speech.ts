@@ -24,6 +24,7 @@ import { hashFile } from "@main/utils";
 import { Audio, Document, Message, UserSetting } from "@main/db/models";
 import log from "@main/logger";
 import proxyAgent from "@main/proxy-agent";
+import { UserSettingKeyEnum } from "@/types/enums";
 
 const logger = log.scope("db/models/speech");
 @Table({
@@ -195,20 +196,19 @@ export class Speech extends Model<Speech> {
     const filePath = path.join(settings.userDataPath(), "speeches", filename);
 
     let openaiConfig: ClientOptions = {};
-    if (engine === "enjoyai") {
-      openaiConfig = {
-        apiKey: (await UserSetting.accessToken()) as string,
-        baseURL: `${settings.apiUrl()}/api/ai`,
-      };
-    } else if (engine === "openai") {
-      const defaultConfig = settings.getSync("openai") as LlmProviderType;
-      if (!defaultConfig.key) {
+    if (engine === "openai") {
+      const defaultConfig = (await UserSetting.get(
+        UserSettingKeyEnum.OPENAI
+      )) as LlmProviderType;
+      if (!defaultConfig?.key) {
         throw new Error(t("openaiKeyRequired"));
       }
       openaiConfig = {
         apiKey: defaultConfig.key,
         baseURL: baseUrl || defaultConfig.baseUrl,
       };
+    } else {
+      throw new Error(t("aiEngineNotSupported"));
     }
 
     const { httpAgent, fetch } = proxyAgent();

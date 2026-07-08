@@ -142,12 +142,8 @@ export const ConversationFormTTS = (props: {
                 </FormControl>
                 <SelectContent>
                   {(
-                    (form.watch("configuration.tts.engine") === "enjoyai"
-                      ? ttsProviders.enjoyai.voices[
-                          form.watch("configuration.tts.model").split("/")[0]
-                        ]
-                      : ttsProviders[form.watch("configuration.tts.engine")]
-                          .voices) || []
+                    ttsProviders[form.watch("configuration.tts.engine")]
+                      ?.voices || []
                   ).map((voice: any) => {
                     if (typeof voice === "string") {
                       return (

@@ -17,13 +17,11 @@ export const PronunciationAssessmentCard = (props: {
   pronunciationAssessment: PronunciationAssessmentType;
   onSelect: (assessment: PronunciationAssessmentType) => void;
   onDelete: (assessment: PronunciationAssessmentType) => void;
-  onSharing: (recording: RecordingType) => void;
 }) => {
   const {
     pronunciationAssessment: assessment,
     onSelect,
     onDelete,
-    onSharing,
   } = props;
 
   return (
@@ -91,13 +89,6 @@ export const PronunciationAssessmentCard = (props: {
               size="sm"
             >
               {t("detail")}
-            </Button>
-            <Button
-              onClick={() => onSharing(assessment.target)}
-              variant="outline"
-              size="sm"
-            >
-              {t("share")}
             </Button>
           </div>
         </div>

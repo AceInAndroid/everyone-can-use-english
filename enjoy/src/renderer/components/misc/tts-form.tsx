@@ -129,16 +129,10 @@ export const TTSForm = (props: { form: ReturnType<typeof useForm> }) => {
                   <SelectValue placeholder={t("selectTtsVoice")} />
                 </SelectTrigger>
               </FormControl>
-              <SelectContent>
-                {(
-                  (form.watch("config.tts.engine") === "enjoyai"
-                    ? ttsProviders.enjoyai.voices[
-                        (form.watch("config.tts.model") as string)?.split(
-                          "/"
-                        )?.[0]
-                      ]
-                    : ttsProviders[form.watch("config.tts.engine") as string]
-                        ?.voices) || []
+                <SelectContent>
+                  {(
+                    ttsProviders[form.watch("config.tts.engine") as string]
+                      ?.voices || []
                 ).map((voice: any) => {
                   if (typeof voice === "string") {
                     return (
