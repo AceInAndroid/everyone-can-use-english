@@ -149,7 +149,9 @@
       "descriptionDescription": "Describe brevemente este agente de chat (No se incluirá en el prompt)",
       "prompt": "Prompt",
       "promptPlaceholder": "Eres mi asistente de IA, por favor responde a todas mis preguntas.",
-      "promptDescription": "La definición del rol (prompt) del agente de chat"
+      "promptDescription": "La definición del rol (prompt) del agente de chat",
+      "presetSourceExists": "Este preajuste ya tiene un agente. Selecciona el agente existente o guarda este como personalizado.",
+      "invalidPresetSource": "Preajuste de agente desconocido."
     },
     "chatMember": {
       "prompt": "Prompt Adicional",
@@ -793,6 +795,9 @@
   "memberJoined": "{{name}} se ha unido al chat.",
   "memberLeft": "{{name}} ha abandonado el chat.",
   "templates": "plantillas",
+  "preset": "Preajuste",
+  "presetCreated": "De preajuste",
+  "noTemplatesFound": "No se encontraron plantillas",
   "askAgentToReply": "Pedir a @{{name}} que responda",
   "inviteAgentInChatAndReply": "Invitar a @{{name}} al chat y responder",
   "chatInputPlaceholder": "Enter para enviar, Shift+Enter para nueva línea, @ para mencionar agentes",

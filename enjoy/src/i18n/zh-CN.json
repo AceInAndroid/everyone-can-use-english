@@ -149,7 +149,9 @@
       "descriptionDescription": "简短介绍这个智能体（不会包含在提示语中）",
       "prompt": "提示语",
       "promptPlaceholder": "你是我的 AI 助手，请回答我任何问题。",
-      "promptDescription": "智能体定义"
+      "promptDescription": "智能体定义",
+      "presetSourceExists": "这个预设已经有对应助手了。请选择已有预设助手，或将当前助手保存为自定义。",
+      "invalidPresetSource": "未知的智能体预设。"
     },
     "chatMember": {
       "prompt": "额外提示语",
@@ -460,6 +462,9 @@
   "selectAiRole": "选择 AI 智能体",
   "chooseFromPresetGpts": "从预设的 GPTs 中选择",
   "custom": "自定义",
+  "preset": "预设",
+  "presetCreated": "来自预设",
+  "noTemplatesFound": "没有找到模板",
   "startConversation": "开始对话",
   "editConversation": "编辑对话",
   "deleteConversation": "删除对话",

@@ -4,10 +4,16 @@ import {
   AppSettingsProviderContext,
   HotKeysSettingsProviderContext,
 } from "@renderer/context";
-import { t } from "i18next";
-import { DEFAULT_GPT_CONFIG } from "@/constants";
+import i18next, { t } from "i18next";
+import {
+  DEFAULT_CHAT_AGENT_TEMPLATE_KEY,
+  DEFAULT_GPT_CONFIG,
+  chatAgentTemplateToDto,
+  getChatAgentPresetSource,
+  getDefaultChatAgentTemplate,
+} from "@/constants";
 import { useHotkeys } from "react-hotkeys-hook";
-import { ChatAgentTypeEnum } from "@/types/enums";
+import { ChatAgentTypeEnum, ChatTypeEnum } from "@/types/enums";
 
 type CopilotProviderState = {
   active: boolean;
@@ -57,14 +63,18 @@ export const CopilotProvider = ({
       chat = await EnjoyApp.chats.findOne({
         where: { id: cachedChatId },
       });
+      if (chat?.type === ChatTypeEnum.TTS) {
+        chat = null;
+      }
     } else if (occupiedChat) {
-      chat = await EnjoyApp.chats.findOne({
-        not: {
-          id: occupiedChat.id,
-        },
-      });
+      const chats = await EnjoyApp.chats.findAll({});
+      chat = chats.find(
+        (chat) =>
+          chat.id !== occupiedChat.id && chat.type !== ChatTypeEnum.TTS
+      );
     } else {
-      chat = await EnjoyApp.chats.findOne({});
+      const chats = await EnjoyApp.chats.findAll({});
+      chat = chats.find((chat) => chat.type !== ChatTypeEnum.TTS);
     }
 
     if (chat && chat.id !== occupiedChat?.id) {
@@ -83,16 +93,19 @@ export const CopilotProvider = ({
   };
 
   const findOrCreateChatAgent = async () => {
-    let agent = await EnjoyApp.chatAgents.findOne({});
+    const defaultSource = getChatAgentPresetSource(
+      DEFAULT_CHAT_AGENT_TEMPLATE_KEY
+    );
+    let agent = await EnjoyApp.chatAgents.findOne({
+      where: { type: ChatAgentTypeEnum.GPT, source: defaultSource },
+    });
     if (agent) {
       return agent;
     }
 
-    return await EnjoyApp.chatAgents.create({
-      name: t("models.chatAgent.namePlaceholder"),
-      description: t("models.chatAgent.descriptionPlaceholder"),
-      prompt: t("models.chatAgent.promptPlaceholder"),
-    });
+    return await EnjoyApp.chatAgents.create(
+      chatAgentTemplateToDto(getDefaultChatAgentTemplate(), i18next.language)
+    );
   };
 
   const buildAgentMember = (agent: ChatAgentType): ChatMemberDtoType => {
@@ -104,7 +117,7 @@ export const CopilotProvider = ({
               model: ttsConfig.model,
               voice: ttsConfig.voice,
               language: ttsConfig.language,
-              ...agent.config.tts,
+              ...agent.config?.tts,
             },
           }
         : {

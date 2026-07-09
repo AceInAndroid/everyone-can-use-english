@@ -1,4 +1,4 @@
-import { t } from "i18next";
+import i18next, { t } from "i18next";
 import {
   Button,
   Dialog,
@@ -23,7 +23,7 @@ import {
   AISettingsProviderContext,
 } from "@renderer/context";
 import { conversationsReducer } from "@renderer/reducers";
-import { GPT_PRESETS } from "@/constants";
+import { getGptPresets } from "@/constants";
 
 export default () => {
   const { addDblistener, removeDbListener } = useContext(DbProviderContext);
@@ -35,8 +35,9 @@ export default () => {
   );
   const [creating, setCreating] = useState<boolean>(false);
   const [preset, setPreset] = useState<any>({});
+  const [locale, setLocale] = useState(i18next.language);
   const [config, setConfig] = useState<any>({
-    gptPresets: GPT_PRESETS,
+    gptPresets: getGptPresets(locale),
     customPreset: {},
     ttsPreset: {
       key: "tts",
@@ -62,6 +63,17 @@ export default () => {
 
     return () => {
       removeDbListener(onConversationsUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const onLanguageChanged = (language: string) => {
+      setLocale(language);
+    };
+
+    i18next.on("languageChanged", onLanguageChanged);
+    return () => {
+      i18next.off("languageChanged", onLanguageChanged);
     };
   }, []);
 
@@ -114,7 +126,7 @@ export default () => {
   };
 
   const preparePresets = async () => {
-    let presets = GPT_PRESETS;
+    let presets = getGptPresets(locale);
     let defaultGptPreset = {
       key: "custom",
       engine: currentGptEngine.name,
@@ -167,7 +179,7 @@ export default () => {
 
   useEffect(() => {
     preparePresets();
-  }, [currentGptEngine]);
+  }, [currentGptEngine, locale]);
 
   return (
     <div className="min-h-full px-4 py-6 lg:px-8 max-w-5xl mx-auto">

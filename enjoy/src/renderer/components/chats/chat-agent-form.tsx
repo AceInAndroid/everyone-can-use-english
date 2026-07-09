@@ -29,17 +29,31 @@ import {
   Textarea,
   toast,
 } from "@renderer/components/ui";
-import { t } from "i18next";
+import i18next, { t } from "i18next";
 import { TTSForm } from "@renderer/components";
 import {
   AISettingsProviderContext,
   AppSettingsProviderContext,
 } from "@renderer/context";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { ChatAgentTypeEnum } from "@/types/enums";
-import { CHAT_AGENT_TEMPLATES } from "@/constants";
+import {
+  CHAT_AGENT_TEMPLATES,
+  getChatAgentPresetSource,
+  getChatAgentTemplateKeyFromSource,
+  localizeChatAgentTemplates,
+} from "@/constants";
 import { cn } from "@/renderer/lib/utils";
 import { CaretSortIcon, CheckIcon } from "@radix-ui/react-icons";
+
+const selectedTemplateFromAgent = (agent?: ChatAgentType) => {
+  const templateKey = getChatAgentTemplateKeyFromSource(agent?.source);
+  return templateKey &&
+    CHAT_AGENT_TEMPLATES.some((template) => template.key === templateKey)
+    ? templateKey
+    : "custom";
+};
+
 export const ChatAgentForm = (props: {
   agent?: ChatAgentType;
   onFinish: () => void;
@@ -47,7 +61,16 @@ export const ChatAgentForm = (props: {
   const { agent, onFinish } = props;
   const { EnjoyApp } = useContext(AppSettingsProviderContext);
   const { ttsConfig } = useContext(AISettingsProviderContext);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>("custom");
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() =>
+    selectedTemplateFromAgent(agent)
+  );
+  const [locale, setLocale] = useState(i18next.language);
+  const [templateSelectionChanged, setTemplateSelectionChanged] =
+    useState(false);
+  const localizedTemplates = useMemo(
+    () => localizeChatAgentTemplates(locale),
+    [locale]
+  );
 
   const agentFormSchema = z.object({
     type: z.enum([ChatAgentTypeEnum.GPT, ChatAgentTypeEnum.TTS]),
@@ -65,6 +88,10 @@ export const ChatAgentForm = (props: {
         .optional(),
     }),
   });
+  const defaultConfig = () => ({
+    prompt: "",
+    tts: {},
+  });
 
   const form = useForm<z.infer<typeof agentFormSchema>>({
     resolver: zodResolver(agentFormSchema),
@@ -73,17 +100,48 @@ export const ChatAgentForm = (props: {
           type: agent.type,
           name: agent.name,
           description: agent.description,
-          config: agent.config,
+          config: {
+            ...defaultConfig(),
+            ...agent.config,
+          },
         }
       : {
           type: ChatAgentTypeEnum.GPT,
           name: "",
           description: "",
+          config: defaultConfig(),
         },
   });
 
   const onSubmit = form.handleSubmit((data) => {
     const { type, name, description, config } = data;
+    const selectedPresetKey =
+      type === ChatAgentTypeEnum.GPT &&
+      CHAT_AGENT_TEMPLATES.some(
+        (template) => template.key === selectedTemplate
+      )
+        ? selectedTemplate
+        : null;
+    const existingPresetKey = getChatAgentTemplateKeyFromSource(agent?.source);
+    const selectedPresetTemplate = selectedPresetKey
+      ? localizedTemplates.find((template) => template.key === selectedPresetKey)
+      : null;
+    const selectedPresetContentMatches =
+      Boolean(selectedPresetTemplate) &&
+      name === selectedPresetTemplate?.name &&
+      (description || "") === (selectedPresetTemplate?.description || "") &&
+      (config.prompt || "") === (selectedPresetTemplate?.prompt || "");
+    const shouldKeepPresetSource =
+      Boolean(selectedPresetKey) && selectedPresetContentMatches;
+    const shouldClearPresetSource =
+      Boolean(agent && existingPresetKey) &&
+      (!shouldKeepPresetSource || type !== ChatAgentTypeEnum.GPT);
+    const source = shouldKeepPresetSource
+      ? getChatAgentPresetSource(selectedPresetKey)
+      : shouldClearPresetSource
+        ? null
+        : agent?.source || null;
+
     if (type === ChatAgentTypeEnum.TTS) {
       config.tts = {
         engine: config.tts?.engine || ttsConfig.engine,
@@ -99,6 +157,7 @@ export const ChatAgentForm = (props: {
           type,
           name,
           description,
+          source,
           config,
         })
         .then(() => {
@@ -115,6 +174,7 @@ export const ChatAgentForm = (props: {
           type,
           name,
           description,
+          ...(source ? { source } : {}),
           config,
         })
         .then(() => {
@@ -141,7 +201,7 @@ export const ChatAgentForm = (props: {
       description: t("models.chatAgent.descriptionPlaceholder"),
       prompt: t("models.chatAgent.promptPlaceholder"),
     },
-    ...CHAT_AGENT_TEMPLATES,
+    ...localizedTemplates,
   ];
 
   const applyTemplate = () => {
@@ -153,8 +213,12 @@ export const ChatAgentForm = (props: {
       if (!template) return;
 
       if (selectedTemplate === "custom") {
-        form.setValue("name", "");
-        form.setValue("description", "");
+        if (!agent) {
+          form.setValue("name", "");
+          form.setValue("description", "");
+          form.setValue("config.prompt", "");
+        }
+        return;
       } else {
         form.setValue("name", template.name || "");
         form.setValue("description", template.description || "");
@@ -164,7 +228,23 @@ export const ChatAgentForm = (props: {
   };
 
   useEffect(() => {
-    if (agent && selectedTemplate === "custom") return;
+    const onLanguageChanged = (language: string) => {
+      setLocale(language);
+    };
+
+    i18next.on("languageChanged", onLanguageChanged);
+    return () => {
+      i18next.off("languageChanged", onLanguageChanged);
+    };
+  }, []);
+
+  useEffect(() => {
+    setSelectedTemplate(selectedTemplateFromAgent(agent));
+    setTemplateSelectionChanged(false);
+  }, [agent?.id, agent?.source]);
+
+  useEffect(() => {
+    if (agent && !templateSelectionChanged) return;
 
     applyTemplate();
   }, [selectedTemplate, form.watch("type")]);
@@ -260,10 +340,24 @@ export const ChatAgentForm = (props: {
                         {TEMPLATES.map((template) => (
                           <CommandItem
                             key={template.key}
-                            value={template.key}
-                            onSelect={() => setSelectedTemplate(template.key)}
+                            value={[
+                              template.key,
+                              template.name,
+                              template.description,
+                            ].join(" ")}
+                            onSelect={() => {
+                              setTemplateSelectionChanged(true);
+                              setSelectedTemplate(template.key);
+                            }}
                           >
-                            {template.name}
+                            <div className="flex flex-col min-w-0">
+                              <span className="truncate">{template.name}</span>
+                              {template.description && (
+                                <span className="text-xs text-muted-foreground line-clamp-2">
+                                  {template.description}
+                                </span>
+                              )}
+                            </div>
                             <CheckIcon
                               className={cn(
                                 "ml-auto h-4 w-4",

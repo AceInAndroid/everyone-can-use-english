@@ -149,7 +149,9 @@
       "descriptionDescription": "Describe this chat agent shortly (Will not included in the prompt)",
       "prompt": "Prompt",
       "promptPlaceholder": "You are my AI assistant, please answer my any questions.",
-      "promptDescription": "The role definition (prompt) of the chat agent"
+      "promptDescription": "The role definition (prompt) of the chat agent",
+      "presetSourceExists": "This preset already has an agent. Select the existing preset agent or save this one as custom.",
+      "invalidPresetSource": "Unknown chat agent preset."
     },
     "chatMember": {
       "prompt": "Extra Prompt",
@@ -460,6 +462,9 @@
   "selectAiRole": "Select AI role",
   "chooseFromPresetGpts": "Choose from preset GPTs",
   "custom": "Custom",
+  "preset": "Preset",
+  "presetCreated": "From preset",
+  "noTemplatesFound": "No templates found",
   "startConversation": "Start conversation",
   "editConversation": "Edit conversation",
   "deleteConversation": "Delete conversation",

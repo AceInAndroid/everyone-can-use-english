@@ -22,7 +22,7 @@ type ChatAgentType = {
   name: string;
   avatarUrl: string;
   description: string;
-  source?: string;
+  source?: string | null;
   prompt?: string;
   config: {
     [key: string]: any;
@@ -118,7 +118,7 @@ type ChatAgentDtoType = {
   avatarUrl?: string;
   name: string;
   description?: string;
-  source?: string;
+  source?: string | null;
   config: {
     [key: string]: any;
   };
