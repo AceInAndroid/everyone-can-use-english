@@ -18,6 +18,12 @@ export type SubtitleEnglishPreferenceType = {
   isLikelyEnglishOnly: boolean;
 };
 
+export type SubtitleTrackAnalysisType = SubtitleEnglishPreferenceType & {
+  previewLines: string[];
+  retainedCueCount: number;
+  removedNonSpeechCueCount: number;
+};
+
 const nonSpeechPattern =
   /(laugh|laughter|applause|music|theme|cheer|audience|silence|inaudible|sigh|groan|clap)/i;
 
@@ -135,6 +141,27 @@ export const getSubtitleEnglishPreference = (
       (isLikelyEnglishOnly ? 100000 : 0) +
       latinLineCount * 10 -
       cjkLineCount * 20,
+  };
+};
+
+export const analyzeSubtitleTrackText = async (
+  text: string,
+  options?: { type?: SubtitleFileType; previewCount?: number }
+): Promise<SubtitleTrackAnalysisType> => {
+  const preference = getSubtitleEnglishPreference(text);
+  const normalized = await normalizeSubtitleText(text, {
+    type: options?.type,
+  });
+
+  return {
+    ...preference,
+    previewLines: normalized.segmentTimeline
+      .slice(0, options?.previewCount || 3)
+      .map((entry) => entry.text)
+      .filter(Boolean),
+    retainedCueCount: normalized.normalization.retainedCueCount || 0,
+    removedNonSpeechCueCount:
+      normalized.normalization.removedNonSpeechCueCount || 0,
   };
 };
 

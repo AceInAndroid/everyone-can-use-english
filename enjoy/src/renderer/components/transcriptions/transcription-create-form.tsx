@@ -7,6 +7,7 @@ import { useContext, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
+  Badge,
   Button,
   Collapsible,
   CollapsibleContent,
@@ -31,12 +32,19 @@ import {
 } from "@renderer/components/ui";
 import { t } from "i18next";
 import { LANGUAGES } from "@/constants";
-import { ChevronDownIcon, ChevronUpIcon, LoaderIcon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  LoaderIcon,
+} from "lucide-react";
 import { SttEngineOptionEnum } from "@/types/enums";
 import {
+  analyzeSubtitleTrackText,
   getSubtitleEnglishPreference,
   normalizeSubtitleText,
   SubtitleFileType,
+  SubtitleTrackAnalysisType,
 } from "@renderer/lib/subtitles";
 
 const transcriptionSchema = z.object({
@@ -47,6 +55,18 @@ const transcriptionSchema = z.object({
   sourceMeta: z.any().optional(),
   normalization: z.any().optional(),
 });
+
+type EmbeddedSubtitleTrackAnalysisState =
+  | {
+      loading: true;
+      analysis?: undefined;
+      error?: undefined;
+    }
+  | {
+      loading: false;
+      analysis?: SubtitleTrackAnalysisType;
+      error?: string;
+    };
 
 export const TranscriptionCreateForm = (props: {
   onSubmit: (data: z.infer<typeof transcriptionSchema>) => void;
@@ -98,6 +118,9 @@ export const TranscriptionCreateForm = (props: {
   });
   const [collapsibleOpen, setCollapsibleOpen] = useState(false);
   const [loadedEmbeddedTrackKey, setLoadedEmbeddedTrackKey] = useState("");
+  const [subtitleTrackAnalyses, setSubtitleTrackAnalyses] = useState<
+    Record<string, EmbeddedSubtitleTrackAnalysisState>
+  >({});
   const [sourceMeta, setSourceMeta] =
     useState<TranscriptionSourceMetaType>(initialSourceMeta);
   const [normalization, setNormalization] =
@@ -127,6 +150,54 @@ export const TranscriptionCreateForm = (props: {
 
   const trackKey = (track: VideoSubtitleTrackType) => {
     return `${track.index}:${track.sidecarPath || ""}`;
+  };
+
+  const getSubtitleTrackScore = (
+    track: VideoSubtitleTrackType,
+    preference: { score: number }
+  ) => {
+    const languageBonus = track.language?.startsWith("en") ? 500 : 0;
+    const defaultBonus = track.dispositionDefault ? 50 : 0;
+
+    return preference.score + languageBonus + defaultBonus;
+  };
+
+  const analyzeEmbeddedSubtitleTrack = async (
+    track: VideoSubtitleTrackType
+  ) => {
+    const key = trackKey(track);
+    const existing = subtitleTrackAnalyses[key];
+    if (existing?.analysis) return existing.analysis;
+
+    setSubtitleTrackAnalyses((current) => ({
+      ...current,
+      [key]: current[key]?.analysis ? current[key] : { loading: true },
+    }));
+
+    try {
+      const result = await EnjoyApp.ffmpeg.readSubtitleSidecar({
+        sidecarPath: track.sidecarPath,
+        format: track.format || "srt",
+      });
+      const analysis = await analyzeSubtitleTrackText(result.text, {
+        type: result.format,
+        previewCount: 3,
+      });
+
+      setSubtitleTrackAnalyses((current) => ({
+        ...current,
+        [key]: { loading: false, analysis },
+      }));
+
+      return analysis;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSubtitleTrackAnalyses((current) => ({
+        ...current,
+        [key]: { loading: false, error: message },
+      }));
+      throw error;
+    }
   };
 
   const loadEmbeddedSubtitle = async (track: VideoSubtitleTrackType) => {
@@ -167,12 +238,10 @@ export const TranscriptionCreateForm = (props: {
             format: track.format || "srt",
           });
           const preference = getSubtitleEnglishPreference(result.text);
-          const languageBonus = track.language?.startsWith("en") ? 500 : 0;
-          const defaultBonus = track.dispositionDefault ? 50 : 0;
 
           return {
             track,
-            score: preference.score + languageBonus + defaultBonus,
+            score: getSubtitleTrackScore(track, preference),
           };
         } catch {
           return {
@@ -199,6 +268,14 @@ export const TranscriptionCreateForm = (props: {
         toast.error(error.message);
       });
   }, [preferredSubtitleTrack?.index, preferredSubtitleTrack?.sidecarPath]);
+
+  useEffect(() => {
+    if (usableSubtitleTracks.length === 0) return;
+
+    usableSubtitleTracks.forEach((track) => {
+      analyzeEmbeddedSubtitleTrack(track).catch((): void => {});
+    });
+  }, [usableSubtitleTracks.map((track) => trackKey(track)).join("|")]);
 
   const parseSubtitle = (file: File) => {
     const fileType = file.name.split(".").pop();
@@ -244,6 +321,23 @@ export const TranscriptionCreateForm = (props: {
 
       reader.readAsText(file);
     });
+  };
+
+  const selectEmbeddedSubtitleTrack = (track: VideoSubtitleTrackType) => {
+    loadEmbeddedSubtitle(track).catch((error) => {
+      toast.error(error.message);
+    });
+  };
+
+  const formatSubtitleTrackLabel = (track: VideoSubtitleTrackType) => {
+    return [
+      `#${track.index}`,
+      track.language || "und",
+      track.title,
+      track.codecName,
+    ]
+      .filter(Boolean)
+      .join(" / ");
   };
 
   return (
@@ -332,41 +426,145 @@ export const TranscriptionCreateForm = (props: {
         />
         {form.watch("service") === "upload" &&
           usableSubtitleTracks.length > 0 && (
-          <FormItem className="grid w-full items-center">
-            <FormLabel>{t("embeddedSubtitle")}</FormLabel>
-            <Select
-              disabled={transcribing}
-              value={loadedEmbeddedTrackKey}
-              onValueChange={(value) => {
-                const track = usableSubtitleTracks.find(
-                  (item) => trackKey(item) === value
-                );
-                if (!track) return;
-                loadEmbeddedSubtitle(track).catch((error) => {
-                  toast.error(error.message);
-                });
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("selectEmbeddedSubtitle")} />
-              </SelectTrigger>
-              <SelectContent>
-                {usableSubtitleTracks.map((track) => (
-                  <SelectItem key={trackKey(track)} value={trackKey(track)}>
-                    {[
-                      track.language || "und",
-                      track.title,
-                      track.codecName,
-                    ]
-                      .filter(Boolean)
-                      .join(" / ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormDescription>{t("embeddedSubtitleDescription")}</FormDescription>
-          </FormItem>
-        )}
+            <FormItem className="grid w-full items-center">
+              <FormLabel>{t("embeddedSubtitle")}</FormLabel>
+              <Select
+                disabled={transcribing}
+                value={loadedEmbeddedTrackKey}
+                onValueChange={(value) => {
+                  const track = usableSubtitleTracks.find(
+                    (item) => trackKey(item) === value
+                  );
+                  if (!track) return;
+                  selectEmbeddedSubtitleTrack(track);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("selectEmbeddedSubtitle")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {usableSubtitleTracks.map((track) => (
+                    <SelectItem key={trackKey(track)} value={trackKey(track)}>
+                      {formatSubtitleTrackLabel(track)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="space-y-2">
+                {usableSubtitleTracks.map((track) => {
+                  const key = trackKey(track);
+                  const state = subtitleTrackAnalyses[key];
+                  const analysis = state?.analysis;
+                  const selected = loadedEmbeddedTrackKey === key;
+                  const score =
+                    analysis && getSubtitleTrackScore(track, analysis);
+
+                  return (
+                    <div
+                      key={key}
+                      role="button"
+                      tabIndex={transcribing ? -1 : 0}
+                      aria-disabled={transcribing}
+                      onClick={() => {
+                        if (!transcribing) selectEmbeddedSubtitleTrack(track);
+                      }}
+                      onKeyDown={(event) => {
+                        if (transcribing) return;
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          selectEmbeddedSubtitleTrack(track);
+                        }
+                      }}
+                      className={`w-full rounded-md border p-3 text-left transition-colors ${
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:bg-muted/50"
+                      } ${
+                        transcribing
+                          ? "cursor-not-allowed opacity-60"
+                          : "cursor-pointer"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="truncate text-sm font-medium">
+                              {formatSubtitleTrackLabel(track)}
+                            </span>
+                            {selected && (
+                              <CheckCircle2Icon className="h-4 w-4 text-primary" />
+                            )}
+                            {track.dispositionDefault && (
+                              <Badge variant="secondary">{t("default")}</Badge>
+                            )}
+                            {analysis?.isLikelyEnglishOnly && (
+                              <Badge variant="outline">
+                                {t("likelyEnglishOnly")}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="grid gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+                            <span>
+                              {t("language")}: {track.language || "und"}
+                            </span>
+                            <span>
+                              {t("subtitleTitle")}: {track.title || "-"}
+                            </span>
+                            <span>
+                              {t("codec")}: {track.codecName || "-"}
+                            </span>
+                            <span>
+                              {t("subtitleScore")}:{" "}
+                              {score == null ? "-" : Math.round(score)}
+                            </span>
+                            <span>
+                              {t("englishLines")}:{" "}
+                              {analysis?.latinLineCount ?? "-"}
+                            </span>
+                            <span>
+                              {t("cjkLines")}: {analysis?.cjkLineCount ?? "-"}
+                            </span>
+                            <span>
+                              {t("retainedCues")}:{" "}
+                              {analysis?.retainedCueCount ?? "-"}
+                            </span>
+                            <span>
+                              {t("removedCues")}:{" "}
+                              {analysis?.removedNonSpeechCueCount ?? "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-3 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                        <div className="mb-1 font-medium text-foreground">
+                          {t("subtitlePreview")}
+                        </div>
+                        {state?.loading && <div>{t("loading")}</div>}
+                        {state?.error && (
+                          <div className="text-destructive">
+                            {state.error}
+                          </div>
+                        )}
+                        {analysis &&
+                          analysis.previewLines.length > 0 &&
+                          analysis.previewLines.map((line, index) => (
+                            <div key={`${key}:${index}`} className="truncate">
+                              {line}
+                            </div>
+                          ))}
+                        {analysis && analysis.previewLines.length === 0 && (
+                          <div>{t("noSubtitlePreview")}</div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <FormDescription>
+                {t("embeddedSubtitleDescription")}
+              </FormDescription>
+            </FormItem>
+          )}
         {form.watch("service") === "upload" && (
           <>
             <FormField
