@@ -10,6 +10,7 @@ type SpeechType = {
   model: string;
   voice: string;
   md5: string;
+  cacheKey?: string;
   filename: string;
   filePath: string;
   configuration: { [key: string]: any };

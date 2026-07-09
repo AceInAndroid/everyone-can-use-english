@@ -87,6 +87,11 @@ export class Speech extends Model<Speech> {
   @Column(DataType.STRING)
   md5: string;
 
+  @Unique
+  @AllowNull(true)
+  @Column(DataType.STRING)
+  cacheKey: string;
+
   @AllowNull(false)
   @Column(DataType.STRING)
   extname: string;

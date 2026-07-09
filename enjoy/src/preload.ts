@@ -519,6 +519,20 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
       return ipcRenderer.invoke("speeches-delete", id);
     },
   },
+  referenceTts: {
+    status: () => {
+      return ipcRenderer.invoke("reference-tts-status");
+    },
+    downloadModel: () => {
+      return ipcRenderer.invoke("reference-tts-download-model");
+    },
+    importModel: (sourceDir: string) => {
+      return ipcRenderer.invoke("reference-tts-import-model", sourceDir);
+    },
+    generateSpeech: (params: ReferenceTtsGenerateParamsType) => {
+      return ipcRenderer.invoke("reference-tts-generate-speech", params);
+    },
+  },
   audiowaveform: {
     generate: (
       file: string,
