@@ -17,6 +17,16 @@ export const WHISPER_MODELS = [
   "large-v3-turbo",
 ];
 
+export const DEFAULT_ECHOGARDEN_STT_ENGINE = "whisper.cpp";
+export const DEFAULT_ECHOGARDEN_ENGLISH_MODEL = "small.en";
+export const DEFAULT_ECHOGARDEN_MULTILINGUAL_MODEL = "large-v3-turbo";
+
+export const getDefaultEchogardenSttModel = (learningLanguage?: string) => {
+  return learningLanguage?.match(/en/i)
+    ? DEFAULT_ECHOGARDEN_ENGLISH_MODEL
+    : DEFAULT_ECHOGARDEN_MULTILINGUAL_MODEL;
+};
+
 import languages from "./languages.json";
 export const LANGUAGES = languages;
 

@@ -9,7 +9,6 @@ import { toast } from "@renderer/components/ui";
 import { TimelineEntry } from "echogarden/dist/utilities/Timeline.d.js";
 import { MAGIC_TOKEN_REGEX, END_OF_SENTENCE_REGEX } from "@/constants";
 import { SttEngineOptionEnum } from "@/types/enums";
-import { t } from "i18next";
 
 export const useTranscriptions = (media: AudioType | VideoType) => {
   const { sttEngine } = useContext(AISettingsProviderContext);
@@ -51,9 +50,7 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
         });
 
         if (!tr?.result?.timeline) {
-          tr.result = {
-            originalText: tr.result?.originalText,
-          };
+          tr.result = tr.result || {};
         }
 
         setTranscription(tr);
@@ -71,13 +68,18 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
     language?: string;
     service?: SttEngineOptionEnum | "upload";
     isolate?: boolean;
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
   }) => {
-    let {
-      originalText,
+    const {
+      originalText: initialOriginalText,
       language = learningLanguage,
       service = sttEngine,
       isolate = false,
+      sourceMeta,
+      normalization,
     } = params || {};
+    let originalText = initialOriginalText;
     setService(service);
     setTranscribing(true);
     setTranscribingProgress(0);
@@ -93,17 +95,24 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
           }
         }
       }
-      const { engine, model, transcript, timeline, tokenId } = await transcribe(
-        media.src,
-        {
-          targetId: media.id,
-          targetType: media.mediaType,
-          originalText,
-          language,
-          service,
-          isolate,
-        }
-      );
+      const {
+        engine,
+        model,
+        transcript,
+        timeline,
+        tokenId,
+        sourceMeta: resultSourceMeta,
+        normalization: resultNormalization,
+      } = await transcribe(media.src, {
+        targetId: media.id,
+        targetType: media.mediaType,
+        originalText,
+        language,
+        service,
+        isolate,
+        sourceMeta,
+        normalization,
+      });
 
       const processedTimeline = preProcessTranscription(timeline);
       if (media.language !== language) {
@@ -125,6 +134,8 @@ export const useTranscriptions = (media: AudioType | VideoType) => {
           transcript,
           originalText,
           tokenId,
+          sourceMeta: resultSourceMeta,
+          normalization: resultNormalization,
         },
         engine,
         model,

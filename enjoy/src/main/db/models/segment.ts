@@ -28,6 +28,8 @@ import { MIME_TYPES } from "@/constants";
 
 const logger = log.scope("db/models/segment");
 const OUTPUT_FORMAT = "mp3";
+const TIMELINE_TIME_TOLERANCE = 0.02;
+const SEGMENT_CROP_VERSION = 2;
 @Table({
   modelName: "Segment",
   tableName: "segments",
@@ -113,6 +115,23 @@ export class Segment extends Model<Segment> {
     return MIME_TYPES[this.extname.toLowerCase()] || "audio/mpeg";
   }
 
+  static matchesCaption(segment: Segment, caption: TimelineEntry): boolean {
+    if (!segment || !caption) return false;
+
+    const text = (segment.caption?.text || "").trim();
+    const currentText = (caption.text || "").trim();
+    const startDelta = Math.abs(segment.startTime - caption.startTime);
+    const endDelta = Math.abs(segment.endTime - caption.endTime);
+    const cropVersion = (segment.caption as any)?.cropVersion;
+
+    return (
+      cropVersion === SEGMENT_CROP_VERSION &&
+      text === currentText &&
+      startDelta <= TIMELINE_TIME_TOLERANCE &&
+      endDelta <= TIMELINE_TIME_TOLERANCE
+    );
+  }
+
   async sync() {
     if (this.isSynced) return;
 
@@ -182,7 +201,10 @@ export class Segment extends Model<Segment> {
       targetType,
       segmentIndex,
       md5,
-      caption,
+      caption: ({
+        ...(caption as any),
+        cropVersion: SEGMENT_CROP_VERSION,
+      } as TimelineEntry),
       startTime: caption.startTime,
       endTime: caption.endTime,
     });
@@ -234,6 +256,13 @@ export class Segment extends Model<Segment> {
   static syncAfterUpdate(segment: Segment) {
     segment.sync().catch((err) => {
       logger.error("sync segment error", segment.id, err);
+    });
+  }
+
+  @AfterDestroy
+  static cleanupFile(segment: Segment) {
+    fs.remove(segment.filePath).catch((err) => {
+      logger.warn("cleanup segment file failed", segment.id, err.message);
     });
   }
 

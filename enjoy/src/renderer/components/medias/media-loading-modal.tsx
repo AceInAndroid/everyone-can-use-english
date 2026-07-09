@@ -18,7 +18,7 @@ export const MediaLoadingModal = () => {
   const { decoded, transcription } = useContext(MediaShadowProviderContext);
 
   return (
-    <AlertDialog open={!decoded || !Boolean(transcription?.result?.timeline)}>
+    <AlertDialog open={!decoded || !transcription?.result?.timeline}>
       <AlertDialogContent className="max-h-[70%] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle>{t("preparingAudio")}</AlertDialogTitle>
@@ -49,13 +49,18 @@ const LoadingContent = () => {
     if (transcription && !transcription.result?.timeline) {
       return (
         <TranscriptionCreateForm
+          media={media}
           originalText={transcription?.result?.originalText}
+          sourceMeta={transcription?.result?.sourceMeta}
+          normalization={transcription?.result?.normalization}
           onSubmit={(data) => {
             generateTranscription({
               originalText: data.text,
               language: data.language,
               service: data.service as SttEngineOptionEnum | "upload",
               isolate: data.isolate,
+              sourceMeta: data.sourceMeta,
+              normalization: data.normalization,
             });
           }}
           onCancel={onCancel}

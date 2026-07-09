@@ -1,3 +1,22 @@
+type VideoSubtitleTrackType = {
+  index: number;
+  language?: string;
+  title?: string;
+  codecName?: string;
+  handlerName?: string;
+  dispositionDefault?: boolean;
+  sidecarPath?: string;
+  format?: "srt" | "vtt";
+};
+
+type VideoSubtitleTrackWarningType = {
+  index: number;
+  language?: string;
+  title?: string;
+  codecName?: string;
+  error: string;
+};
+
 type VideoType = {
   mediaType: string,
   id: string;
@@ -9,7 +28,10 @@ type VideoType = {
   src?: string;
   coverUrl?: string;
   md5: string;
-  metadata?: Ffmpeg.FfprobeData;
+  metadata?: Ffmpeg.FfprobeData & {
+    subtitleTracks?: VideoSubtitleTrackType[];
+    subtitleTrackWarnings?: VideoSubtitleTrackWarningType[];
+  };
   duration?: number;
   transcribed?: boolean;
   transcribing?: boolean;

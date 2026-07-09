@@ -60,6 +60,8 @@ export class Transcription extends Model<Transcription> {
   result: Partial<AlignmentResult> & {
     originalText?: string;
     tokenId?: string | number;
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
   };
 
   @Column(DataType.DATE)
@@ -75,7 +77,10 @@ export class Transcription extends Model<Transcription> {
   get md5(): string {
     // Calculate md5 of result
     if (!this.result) return null;
-    return createHash("md5").update(JSON.stringify(this.result)).digest("hex");
+    const content = { ...this.result };
+    delete content.sourceMeta;
+    delete content.normalization;
+    return createHash("md5").update(JSON.stringify(content)).digest("hex");
   }
 
   @Column(DataType.VIRTUAL)

@@ -580,6 +580,12 @@ contextBridge.exposeInMainWorld("__ENJOY_APP__", {
     transcode: (input: string, output: string, options: string[]) => {
       return ipcRenderer.invoke("ffmpeg-transcode", input, output, options);
     },
+    readSubtitleSidecar: (params: {
+      sidecarPath: string;
+      format?: "srt" | "vtt";
+    }) => {
+      return ipcRenderer.invoke("ffmpeg-read-subtitle-sidecar", params);
+    },
   },
   decompress: {
     onComplete: (

@@ -1,5 +1,5 @@
 import { ipcMain, IpcMainEvent } from "electron";
-import { Audio, Segment, Video } from "@main/db/models";
+import { Audio, Segment, Transcription, Video } from "@main/db/models";
 
 class SegmentsHandler {
   private async find(_event: IpcMainEvent, id: string) {
@@ -23,9 +23,27 @@ class SegmentsHandler {
         segmentIndex,
       },
       include: [Audio, Video],
+      order: [["updatedAt", "DESC"]],
     });
 
-    return segments.map((segment) => segment.toJSON());
+    const transcription = await Transcription.findOne({
+      where: { targetId, targetType },
+    });
+    const caption = transcription?.result?.timeline?.[segmentIndex];
+    if (!caption) {
+      return segments.map((segment) => segment.toJSON());
+    }
+
+    const currentSegments = segments.filter((segment) =>
+      Segment.matchesCaption(segment, caption)
+    );
+    const staleSegments = segments.filter(
+      (segment) => !Segment.matchesCaption(segment, caption)
+    );
+
+    await Promise.all(staleSegments.map((segment) => segment.destroy()));
+
+    return currentSegments.map((segment) => segment.toJSON());
   }
 
   private async create(

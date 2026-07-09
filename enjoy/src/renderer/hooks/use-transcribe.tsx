@@ -11,10 +11,10 @@ import {
   TimelineEntry,
   type TimelineEntryType,
 } from "echogarden/dist/utilities/Timeline";
-import { type ParsedCaptionsResult, parseText } from "media-captions";
 import { SttEngineOptionEnum } from "@/types/enums";
 import { RecognitionResult } from "echogarden/dist/api/API.js";
 import log from "electron-log/renderer";
+import { normalizeSubtitleText } from "@renderer/lib/subtitles";
 
 const logger = log.scope("use-transcribe.tsx");
 
@@ -50,6 +50,8 @@ export const useTranscribe = () => {
       service: SttEngineOptionEnum | "upload";
       isolate?: boolean;
       align?: boolean;
+      sourceMeta?: TranscriptionSourceMetaType;
+      normalization?: TranscriptionNormalizationType;
     }
   ): Promise<{
     engine: string;
@@ -58,11 +60,20 @@ export const useTranscribe = () => {
     timeline: TimelineEntry[];
     originalText?: string;
     tokenId?: number;
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
     url: string;
   }> => {
     const url = await transcode(mediaSrc);
-    const { originalText, language, service, isolate = false, align = true } =
-      params || {};
+    const {
+      originalText,
+      language,
+      service,
+      isolate = false,
+      align = true,
+      sourceMeta,
+      normalization,
+    } = params || {};
     const blob = await (await fetch(url)).blob();
 
     let result: any;
@@ -82,11 +93,27 @@ export const useTranscribe = () => {
     }
 
     const { segmentTimeline, transcript } = result;
+    const resultSourceMeta =
+      sourceMeta ||
+      result.sourceMeta ||
+      ({
+        kind:
+          service === "upload"
+            ? segmentTimeline?.length > 0
+              ? "uploaded-subtitle"
+              : "pasted-transcript"
+            : service === SttEngineOptionEnum.LOCAL
+              ? "local-stt"
+              : "openai-stt",
+      } as TranscriptionSourceMetaType);
+    const resultNormalization = normalization || result.normalization;
 
     if (!align && transcript) {
       return {
         ...result,
         timeline: [],
+        sourceMeta: resultSourceMeta,
+        normalization: resultNormalization,
         url,
       };
     }
@@ -111,6 +138,8 @@ export const useTranscribe = () => {
       return {
         ...result,
         timeline,
+        sourceMeta: resultSourceMeta,
+        normalization: resultNormalization,
         url,
       };
     } else if (transcript) {
@@ -140,6 +169,8 @@ export const useTranscribe = () => {
       return {
         ...result,
         timeline,
+        sourceMeta: resultSourceMeta,
+        normalization: resultNormalization,
         url,
       };
     } else {
@@ -154,63 +185,35 @@ export const useTranscribe = () => {
     model: string;
     transcript: string;
     segmentTimeline: TimelineEntry[];
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
   }> => {
-    let caption: ParsedCaptionsResult;
-    try {
-      caption = await parseText(originalText, { type: "srt" });
-    } catch (err) {
-      logger.error("parseTextFailed", { error: err.message });
-      throw err;
-    }
+    const normalized = await normalizeSubtitleText(originalText, {
+      type: "srt",
+    });
+    let transcript = normalized.transcript;
 
-    if (caption.cues.length > 0) {
-      // valid srt file
-      const segmentTimeline = caption.cues.map((cue) => {
-        return {
-          type: "segment",
-          text: cue.text,
-          startTime: cue.startTime,
-          endTime: cue.endTime,
-          timeline: [],
-        } as TimelineEntry;
-      });
-
-      return {
-        engine: "upload",
-        model: "-",
-        transcript: segmentTimeline
-          .map((entry: TimelineEntry) => entry.text)
-          .join(" "),
-        segmentTimeline,
-      };
-    } else {
-      // Remove all content inside `()`, `[]`, `{}` and trim the text
-      // remove all markdown formatting
-      let transcript = originalText
-        .replace(/\(.*?\)/g, "")
-        .replace(/\[.*?\]/g, "")
-        .replace(/\{.*?\}/g, "")
-        .replace(/[*_`]/g, "")
-        .trim();
-
-      // if the transcript does not contain any punctuation, use AI command to add punctuation
-      if (!transcript.match(punctuationsPattern)) {
-        try {
-          const punctuatedText = await punctuateText(transcript);
-          transcript = punctuatedText;
-        } catch (err) {
-          toast.error(err.message);
-          logger.error("punctuateTextFailed", { error: err.message });
-        }
+    if (
+      normalized.segmentTimeline.length === 0 &&
+      transcript &&
+      !transcript.match(punctuationsPattern)
+    ) {
+      try {
+        const punctuatedText = await punctuateText(transcript);
+        transcript = punctuatedText;
+      } catch (err) {
+        toast.error(err.message);
+        logger.error("punctuateTextFailed", { error: err.message });
       }
-
-      return {
-        engine: "upload",
-        model: "-",
-        transcript,
-        segmentTimeline: [],
-      };
     }
+
+    return {
+      engine: "upload",
+      model: "-",
+      transcript,
+      segmentTimeline: normalized.segmentTimeline,
+      normalization: normalized.normalization,
+    };
   };
 
   const transcribeByLocal = async (

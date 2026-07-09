@@ -336,6 +336,16 @@ type EnjoyAppType = {
       output: string,
       options?: string[]
     ) => Promise<string>;
+    readSubtitleSidecar: (params: {
+      sidecarPath: string;
+      format?: "srt" | "vtt";
+    }) => Promise<{
+      text: string;
+      format: "srt" | "vtt";
+      track: {
+        sidecarPath: string;
+      };
+    }>;
   };
   decompress: {
     onComplete: (callback: (event, task: DecompressTask) => void) => void;

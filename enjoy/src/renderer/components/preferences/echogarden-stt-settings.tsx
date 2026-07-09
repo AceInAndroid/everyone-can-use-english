@@ -20,7 +20,11 @@ import { useContext, useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { WHISPER_MODELS } from "@/constants";
+import {
+  DEFAULT_ECHOGARDEN_STT_ENGINE,
+  getDefaultEchogardenSttModel,
+  WHISPER_MODELS,
+} from "@/constants";
 
 const echogardenSttConfigSchema = z.object({
   engine: z.enum(["whisper", "whisper.cpp"]),
@@ -44,7 +48,8 @@ export const EchogardenSttSettings = (props: {
   onSave: (data: z.infer<typeof echogardenSttConfigSchema>) => void;
 }) => {
   const { echogardenSttConfig, onSave } = props;
-  const { EnjoyApp } = useContext(AppSettingsProviderContext);
+  const { EnjoyApp, learningLanguage } = useContext(AppSettingsProviderContext);
+  const defaultModel = getDefaultEchogardenSttModel(learningLanguage);
   const [platformInfo, setPlatformInfo] = useState<{
     platform: string;
     arch: string;
@@ -55,9 +60,9 @@ export const EchogardenSttSettings = (props: {
   const form = useForm<z.infer<typeof echogardenSttConfigSchema>>({
     resolver: zodResolver(echogardenSttConfigSchema),
     values: {
-      engine: echogardenSttConfig?.engine,
+      engine: echogardenSttConfig?.engine || DEFAULT_ECHOGARDEN_STT_ENGINE,
       whisper: {
-        model: "tiny",
+        model: defaultModel,
         temperature: 0.1,
         prompt: "",
         encoderProvider: "cpu",
@@ -65,7 +70,7 @@ export const EchogardenSttSettings = (props: {
         ...echogardenSttConfig?.whisper,
       },
       whisperCpp: {
-        model: "tiny",
+        model: defaultModel,
         temperature: 0.1,
         prompt: "",
         enableGPU: false,
@@ -76,14 +81,14 @@ export const EchogardenSttSettings = (props: {
 
   const onSubmit = async (data: z.infer<typeof echogardenSttConfigSchema>) => {
     onSave({
-      engine: data.engine || "whisper",
+      engine: data.engine || DEFAULT_ECHOGARDEN_STT_ENGINE,
       whisper: {
-        model: data.whisper.model || "tiny",
         ...data.whisper,
+        model: data.whisper.model || defaultModel,
       },
       whisperCpp: {
-        model: data.whisperCpp.model || "tiny",
         ...data.whisperCpp,
+        model: data.whisperCpp.model || defaultModel,
       },
     });
   };
@@ -97,6 +102,11 @@ export const EchogardenSttSettings = (props: {
     EnjoyApp.app.getPlatformInfo().then(setPlatformInfo);
     EnjoyApp.echogarden.getPackagesDir().then(setPackagesDir);
   }, []);
+
+  const engine = form.watch("engine") || DEFAULT_ECHOGARDEN_STT_ENGINE;
+  const modelFieldName = (
+    engine === "whisper.cpp" ? "whisperCpp.model" : "whisper.model"
+  ) as "whisper.model" | "whisperCpp.model";
 
   return (
     <Form {...form}>
@@ -115,11 +125,7 @@ export const EchogardenSttSettings = (props: {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="whisper">Whisper</SelectItem>
-                      <SelectItem
-                        value="whisper.cpp"
-                      >
-                        Whisper.cpp
-                      </SelectItem>
+                      <SelectItem value="whisper.cpp">Whisper.cpp</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormControl>
@@ -132,8 +138,9 @@ export const EchogardenSttSettings = (props: {
             )}
           />
           <FormField
+            key={modelFieldName}
             control={form.control}
-            name="whisper.model"
+            name={modelFieldName}
             render={({ field }) => (
               <FormItem>
                 <FormLabel>{t("model")}</FormLabel>

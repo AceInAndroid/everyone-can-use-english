@@ -259,7 +259,29 @@ type TranscribeParamsType = {
     service: SttEngineOptionEnum | "upload";
     isolate?: boolean;
     align?: boolean;
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
   };
+};
+
+type TranscriptionSourceMetaType = {
+  kind:
+    | "embedded-subtitle"
+    | "uploaded-subtitle"
+    | "pasted-transcript"
+    | "local-stt"
+    | "openai-stt";
+  subtitleTrackIndex?: number;
+  subtitleLanguage?: string;
+  subtitleTitle?: string;
+  subtitleCodec?: string;
+  sourceFileName?: string;
+};
+
+type TranscriptionNormalizationType = {
+  removedNonSpeechCueCount: number;
+  retainedCueCount: number;
+  warnings: string[];
 };
 
 type TranscribeResultType = {
@@ -269,6 +291,8 @@ type TranscribeResultType = {
   timeline: TimelineEntry[];
   originalText?: string;
   tokenId?: number;
+  sourceMeta?: TranscriptionSourceMetaType;
+  normalization?: TranscriptionNormalizationType;
   url: string;
 };
 

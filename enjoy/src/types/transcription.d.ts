@@ -7,7 +7,13 @@ type TranscriptionType = {
   engine: string;
   model: string;
   language?: string;
-  result: AlignmentResult & { original?: string };
+  result: AlignmentResult & {
+    original?: string;
+    originalText?: string;
+    tokenId?: number | string;
+    sourceMeta?: TranscriptionSourceMetaType;
+    normalization?: TranscriptionNormalizationType;
+  };
   md5?: string;
   downloadsCount?: number;
   createdAt: string;

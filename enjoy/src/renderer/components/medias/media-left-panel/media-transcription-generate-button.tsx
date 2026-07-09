@@ -59,6 +59,7 @@ export const MediaTranscriptionGenerateButton = (props: {
         </AlertDialogHeader>
 
         <TranscriptionCreateForm
+          media={media}
           onCancel={() => setOpen(false)}
           onSubmit={(data) => {
             generateTranscription({
@@ -66,6 +67,8 @@ export const MediaTranscriptionGenerateButton = (props: {
               language: data.language,
               service: data.service as SttEngineOptionEnum | "upload",
               isolate: data.isolate,
+              sourceMeta: data.sourceMeta,
+              normalization: data.normalization,
             })
               .then(() => {
                 setOpen(false);

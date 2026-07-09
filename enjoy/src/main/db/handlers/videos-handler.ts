@@ -152,6 +152,8 @@ class VideosHandler {
         video.destroy();
       }
     }
+
+    await Video.cleanupOrphanSubtitleSidecars();
   }
 
   register() {

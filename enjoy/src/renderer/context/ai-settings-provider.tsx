@@ -5,7 +5,12 @@ import {
 } from "@renderer/context";
 import { SttEngineOptionEnum, UserSettingKeyEnum } from "@/types/enums";
 import { GPT_PROVIDERS, TTS_PROVIDERS } from "@renderer/components";
-import { WHISPER_MODELS } from "@/constants";
+import {
+  DEFAULT_ECHOGARDEN_MULTILINGUAL_MODEL,
+  DEFAULT_ECHOGARDEN_STT_ENGINE,
+  getDefaultEchogardenSttModel,
+  WHISPER_MODELS,
+} from "@/constants";
 
 type AISettingsProviderState = {
   sttEngine?: SttEngineOptionEnum;
@@ -26,6 +31,36 @@ const initialState: AISettingsProviderState = {};
 const REMOVED_STT_ENGINES = ["azure", "cloudflare"].map(
   (engine) => `enjoy_${engine}`
 );
+
+const normalizeLegacyWhisperModel = (
+  whisperModel: string,
+  learningLanguage?: string
+) => {
+  let model = getDefaultEchogardenSttModel(learningLanguage);
+
+  if (whisperModel.match(/large/)) {
+    model = DEFAULT_ECHOGARDEN_MULTILINGUAL_MODEL;
+  } else if (WHISPER_MODELS.includes(whisperModel)) {
+    model = whisperModel;
+  } else if (whisperModel.match(/tiny/)) {
+    model = "tiny";
+  } else if (whisperModel.match(/base/)) {
+    model = "base";
+  } else if (whisperModel.match(/small/)) {
+    model = "small";
+  } else if (whisperModel.match(/medium/)) {
+    model = "medium";
+  }
+
+  if (
+    learningLanguage?.match(/en/) &&
+    model.match(/^(tiny|base|small|medium)$/)
+  ) {
+    return `${model}.en`;
+  }
+
+  return model;
+};
 
 export const AISettingsProviderContext =
   createContext<AISettingsProviderState>(initialState);
@@ -131,40 +166,24 @@ export const AISettingsProvider = ({
     let config = await EnjoyApp.userSettings.get(UserSettingKeyEnum.ECHOGARDEN);
 
     if (!config) {
-      let model = "tiny";
       const whisperModel =
         (await EnjoyApp.userSettings.get(UserSettingKeyEnum.WHISPER)) || "";
-      if (WHISPER_MODELS.includes(whisperModel)) {
-        model = whisperModel;
-      } else {
-        if (whisperModel.match(/tiny/)) {
-          model = "tiny";
-        } else if (whisperModel.match(/base/)) {
-          model = "base";
-        } else if (whisperModel.match(/small/)) {
-          model = "small";
-        } else if (whisperModel.match(/medium/)) {
-          model = "medium";
-        } else if (whisperModel.match(/large/)) {
-          model = "large-v3-turbo";
-        }
-
-        if (
-          learningLanguage.match(/en/) &&
-          model.match(/tiny|base|small|medium/)
-        ) {
-          model = `${model}.en`;
-        }
-      }
+      const model = normalizeLegacyWhisperModel(whisperModel, learningLanguage);
 
       config = {
-        engine: "whisper",
+        engine: DEFAULT_ECHOGARDEN_STT_ENGINE,
         whisper: {
           model,
           temperature: 0.2,
           prompt: "",
           encoderProvider: "cpu",
           decoderProvider: "cpu",
+        },
+        whisperCpp: {
+          model,
+          temperature: 0.2,
+          prompt: "",
+          enableGPU: false,
         },
       };
       EnjoyApp.userSettings.set(UserSettingKeyEnum.ECHOGARDEN, config);

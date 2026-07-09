@@ -49,7 +49,14 @@ export const TranscriptionEditButton = (props: {
 
   const handleSave = async () => {
     setSubmiting(true);
-    generateTranscription({ originalText: content, service: "upload" })
+    generateTranscription({
+      originalText: content,
+      service: "upload",
+      sourceMeta: {
+        kind: "uploaded-subtitle",
+        sourceFileName: transcription.targetMd5,
+      },
+    })
       .then(() => setOpen(false))
       .catch((e) => {
         toast.error(e.message);

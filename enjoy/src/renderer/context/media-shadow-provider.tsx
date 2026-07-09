@@ -69,10 +69,12 @@ type MediaShadowContextType = {
   generateTranscription: (params?: {
     originalText?: string;
     language?: string;
-    model?: string;
-    service?: SttEngineOptionEnum | "upload";
-    isolate?: boolean;
-  }) => Promise<void>;
+	    model?: string;
+	    service?: SttEngineOptionEnum | "upload";
+	    isolate?: boolean;
+	    sourceMeta?: TranscriptionSourceMetaType;
+	    normalization?: TranscriptionNormalizationType;
+	  }) => Promise<void>;
   transcribing: boolean;
   transcribingProgress: number;
   transcribingOutput: string;
