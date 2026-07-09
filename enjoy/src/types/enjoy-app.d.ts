@@ -301,6 +301,14 @@ type EnjoyAppType = {
     ) => Promise<SpeechType>;
     delete: (id: string) => Promise<void>;
   };
+  referenceTts: {
+    status: () => Promise<ReferenceTtsStatusType>;
+    downloadModel: () => Promise<ReferenceTtsStatusType>;
+    importModel: (sourceDir: string) => Promise<ReferenceTtsStatusType>;
+    generateSpeech: (
+      params: ReferenceTtsGenerateParamsType
+    ) => Promise<SpeechType>;
+  };
   echogarden: {
     getPackagesDir: () => Promise<string>;
     recognize: (

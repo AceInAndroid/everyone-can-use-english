@@ -9,6 +9,7 @@ export enum UserSettingKeyEnum {
   GPT_ENGINE = "gpt_engine",
   STT_ENGINE = "stt_engine",
   TTS_CONFIG = "tts_config",
+  REFERENCE_TTS = "reference_tts",
   VOCABULARY = "vocabulary",
   DICTS = "dicts",
   RECORDER = "recorder",

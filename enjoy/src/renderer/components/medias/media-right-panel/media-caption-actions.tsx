@@ -20,6 +20,7 @@ import {
   SpeechIcon,
   NotebookPenIcon,
   DownloadIcon,
+  Volume2Icon,
   PlusIcon,
   XIcon,
 } from "lucide-react";
@@ -29,6 +30,7 @@ import {
 } from "echogarden/dist/utilities/Timeline.d.js";
 import { convertWordIpaToNormal } from "@/utils";
 import { useCopyToClipboard } from "@uidotdev/usehooks";
+import { UserSettingKeyEnum } from "@/types/enums";
 
 export const MediaCaptionActions = (props: {
   caption: TimelineEntry;
@@ -46,6 +48,8 @@ export const MediaCaptionActions = (props: {
   );
   const [_, copyToClipboard] = useCopyToClipboard();
   const [copied, setCopied] = useState<boolean>(false);
+  const [generatingReferenceTts, setGeneratingReferenceTts] =
+    useState<boolean>(false);
 
   const [fbtOpen, setFbtOpen] = useState<boolean>(false);
 
@@ -144,6 +148,50 @@ export const MediaCaptionActions = (props: {
       });
   };
 
+  const handleReferenceTts = async () => {
+    setGeneratingReferenceTts(true);
+    try {
+      const config =
+        (await EnjoyApp.userSettings.get(
+          UserSettingKeyEnum.REFERENCE_TTS
+        )) || {};
+      const status = await EnjoyApp.referenceTts.status();
+      if (!status.installed) {
+        toast.error(t("referenceTtsModelNotReady"));
+        return;
+      }
+
+      const speech = await EnjoyApp.referenceTts.generateSpeech({
+        sourceId: media.id,
+        sourceType: media.mediaType,
+        text: caption.text,
+        provider: config.provider,
+        model: config.model,
+        voice: config.voice,
+        speed: config.speed,
+        granularity: "sentence",
+        media: {
+          id: media.id,
+          type: media.mediaType,
+          md5: media.md5,
+        },
+        caption: {
+          id: caption.id,
+          startTime: caption.startTime,
+          endTime: caption.endTime,
+          text: caption.text,
+        },
+      });
+      const audio = new Audio(speech.src);
+      await audio.play();
+    } catch (err) {
+      console.error(err);
+      toast.error(err.message);
+    } finally {
+      setGeneratingReferenceTts(false);
+    }
+  };
+
   if (!transcription) return null;
   if (!caption) return null;
 
@@ -206,6 +254,19 @@ export const MediaCaptionActions = (props: {
               </Button>
             }
           />
+
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={generatingReferenceTts}
+            className="rounded-full w-8 h-8 p-0"
+            data-tooltip-id="media-shadow-tooltip"
+            data-tooltip-content={t("playReferenceTts")}
+            data-tooltip-place="left"
+            onClick={handleReferenceTts}
+          >
+            <Volume2Icon className="w-4 h-4" />
+          </Button>
 
           <Button
             variant="outline"

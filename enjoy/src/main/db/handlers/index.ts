@@ -9,6 +9,7 @@ export * from "./messages-handler";
 export * from "./notes-handler";
 export * from "./pronunciation-assessments-handler";
 export * from "./recordings-handler";
+export * from "./reference-tts-handler";
 export * from "./speeches-handler";
 export * from "./segments-handler";
 export * from "./transcriptions-handler";

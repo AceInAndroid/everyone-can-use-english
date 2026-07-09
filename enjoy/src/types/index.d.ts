@@ -6,6 +6,21 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 declare module "foliate-js/view.js";
 declare module "foliate-js/epub.js";
 declare module "compromise-paragraphs";
+declare module "kokoro-js" {
+  export class KokoroTTS {
+    static from_pretrained(
+      modelId: string,
+      options?: {
+        dtype?: "fp32" | "fp16" | "q8" | "q4" | "q4f16";
+        device?: "wasm" | "webgpu" | "cpu" | null;
+      }
+    ): Promise<KokoroTTS>;
+    generate(
+      text: string,
+      options?: { voice?: string; speed?: number }
+    ): Promise<{ save(filePath: string): Promise<void> }>;
+  }
+}
 
 declare module "segment" {
   class Segment {
