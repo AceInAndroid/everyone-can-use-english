@@ -41,8 +41,8 @@ import {
   videosHandler,
   userSettingsHandler,
 } from "./handlers";
-import os from "os";
 import path from "path";
+import { pathToFileURL } from "node:url";
 import { i18n } from "@main/i18n";
 import { UserSettingKeyEnum } from "@/types/enums";
 import log from "@main/logger";
@@ -136,15 +136,10 @@ db.connect = async () => {
 
       const loadModule: () => Promise<
         RunnableMigration<unknown>
-      > = async () => {
-        if (os.platform() === "win32") {
-          return import(`file://${filepath}`) as Promise<
-            RunnableMigration<unknown>
-          >;
-        } else {
-          return import(filepath) as Promise<RunnableMigration<unknown>>;
-        }
-      };
+      > = async () =>
+        import(pathToFileURL(filepath).href) as Promise<
+          RunnableMigration<unknown>
+        >;
 
       const getModule = async () => {
         return await loadModule();

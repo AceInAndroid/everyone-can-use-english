@@ -19,7 +19,7 @@ import fs from "fs-extra";
 import { t } from "i18next";
 import path from "path";
 import { DocumentFormats } from "@/constants";
-import { enjoyUrlToPath, hashFile } from "@/main/utils";
+import { enjoyUrlToPath, hashFile, pathToEnjoyUrl } from "@/main/utils";
 import { v5 as uuidv5 } from "uuid";
 import { fileTypeFromFile } from "file-type";
 import mime from "mime-types";
@@ -106,13 +106,10 @@ export class Document extends Model<Document> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    if (!this.filePath) return null;
+    const filePath = this.filePath;
+    if (!filePath) return null;
 
-    return `enjoy://${path.posix.join(
-      "library",
-      "documents",
-      `${this.md5}.${this.metadata.extension}`
-    )}`;
+    return pathToEnjoyUrl(filePath);
   }
 
   @Column(DataType.VIRTUAL)

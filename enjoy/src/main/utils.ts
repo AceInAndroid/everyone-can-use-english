@@ -3,6 +3,23 @@ import { createReadStream } from "fs";
 import settings from "./settings";
 import path from "path";
 
+const ENJOY_URL_PROTOCOL = "enjoy:";
+const ENJOY_LIBRARY_HOST = "library";
+const USER_DATA_LIBRARY_DIRECTORIES = new Set([
+  "audios",
+  "videos",
+  "recordings",
+  "speeches",
+  "segments",
+  "documents",
+]);
+const LIBRARY_DIRECTORIES = new Set([
+  ...USER_DATA_LIBRARY_DIRECTORIES,
+  "cache",
+  "dictionaries",
+  "waveforms",
+]);
+
 export function hashFile(
   path: string,
   options: { algo: string }
@@ -39,31 +56,84 @@ export function hashBlob(
   });
 }
 
-/*
- * Convert enjoy url to file path
- *
- * @param {string} enjoyUrl - enjoy url
- * @returns {string} file path
- */
-export function enjoyUrlToPath(enjoyUrl: string): string {
-  let filePath = enjoyUrl;
+export const isPathWithin = (root: string, filePath: string) => {
+  const relative = path.relative(path.resolve(root), path.resolve(filePath));
+  return (
+    relative === "" ||
+    (!path.isAbsolute(relative) &&
+      relative !== ".." &&
+      !relative.startsWith(`..${path.sep}`))
+  );
+};
 
-  if (
-    enjoyUrl.match(
-      /enjoy:\/\/library\/(audios|videos|recordings|speeches|segments)/g
-    )
-  ) {
-    filePath = path.posix.join(
-      settings.userDataPath(),
-      enjoyUrl.replace("enjoy://library/", "")
-    );
-  } else if (enjoyUrl.startsWith("enjoy://library/")) {
-    filePath = path.posix.join(
-      settings.libraryPath(),
-      filePath.replace("enjoy://library/", "")
-    );
+export const resolvePathWithin = (root: string, relativePath: string) => {
+  if (path.isAbsolute(relativePath)) return null;
+
+  const filePath = path.resolve(root, relativePath);
+  return isPathWithin(root, filePath) ? filePath : null;
+};
+
+export const isSafeFileName = (filename: string) =>
+  Boolean(filename) &&
+  filename !== "." &&
+  filename !== ".." &&
+  !filename.includes("\0") &&
+  !filename.includes("/") &&
+  !filename.includes("\\");
+
+export const resolveEnjoyUrlToPath = (enjoyUrl: string) => {
+  try {
+    const url = new URL(enjoyUrl);
+    if (
+      url.protocol !== ENJOY_URL_PROTOCOL ||
+      url.hostname !== ENJOY_LIBRARY_HOST ||
+      url.search ||
+      url.hash
+    ) {
+      return null;
+    }
+
+    const segments = url.pathname
+      .split("/")
+      .filter(Boolean)
+      .map((segment) => decodeURIComponent(segment));
+    const [topLevelDirectory] = segments;
+
+    if (
+      !topLevelDirectory ||
+      !LIBRARY_DIRECTORIES.has(topLevelDirectory) ||
+      segments.some(
+        (segment) =>
+          segment === "." ||
+          segment === ".." ||
+          segment.includes("\0") ||
+          segment.includes("/") ||
+          segment.includes("\\")
+      )
+    ) {
+      return null;
+    }
+
+    const root = USER_DATA_LIBRARY_DIRECTORIES.has(topLevelDirectory)
+      ? settings.userDataPath()
+      : settings.libraryPath();
+    return resolvePathWithin(root, path.join(...segments));
+  } catch {
+    return null;
   }
+};
 
+/*
+ * Convert an Enjoy library URL to an absolute local path. Local paths remain
+ * supported for IPC callers that have not been normalized to Enjoy URLs yet.
+ */
+export function enjoyUrlToPath(value: string): string {
+  if (!value.startsWith(ENJOY_URL_PROTOCOL)) return value;
+
+  const filePath = resolveEnjoyUrlToPath(value);
+  if (!filePath) {
+    throw new Error("Invalid Enjoy library URL");
+  }
   return filePath;
 }
 
@@ -74,17 +144,22 @@ export function enjoyUrlToPath(enjoyUrl: string): string {
  * @returns {string} enjoy url
  */
 export function pathToEnjoyUrl(filePath: string): string {
-  let enjoyUrl = filePath;
+  const roots = [
+    settings.userDataPath(),
+    settings.libraryPath(),
+  ];
+  const resolvedFilePath = path.resolve(filePath);
 
-  if (filePath.startsWith(settings.userDataPath())) {
-    enjoyUrl = `enjoy://library/${filePath
-      .replace(settings.userDataPath(), "")
-      .replace(/^\//, "")}`;
-  } else if (filePath.startsWith(settings.libraryPath())) {
-    enjoyUrl = `enjoy://library/${filePath
-      .replace(settings.libraryPath(), "")
-      .replace(/^\//, "")}`;
+  for (const root of roots) {
+    if (!isPathWithin(root, resolvedFilePath)) continue;
+
+    const segments = path.relative(root, resolvedFilePath).split(path.sep);
+    if (!segments[0] || !LIBRARY_DIRECTORIES.has(segments[0])) continue;
+
+    return `${ENJOY_URL_PROTOCOL}//${ENJOY_LIBRARY_HOST}/${segments
+      .map((segment) => encodeURIComponent(segment))
+      .join("/")}`;
   }
 
-  return enjoyUrl;
+  throw new Error("File is outside the Enjoy library");
 }

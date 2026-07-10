@@ -21,7 +21,7 @@ import {
 } from "@main/db/models";
 import settings from "@main/settings";
 import { AudioFormats, MIME_TYPES, VideoFormats } from "@/constants";
-import { hashFile } from "@main/utils";
+import { hashFile, pathToEnjoyUrl } from "@main/utils";
 import path from "path";
 import fs from "fs-extra";
 import { t } from "i18next";
@@ -125,21 +125,8 @@ export class Audio extends Model<Audio> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    if (this.compressedFilePath) {
-      return `enjoy://${path.posix.join(
-        "library",
-        "audios",
-        this.getDataValue("md5") + ".compressed.mp3"
-      )}`;
-    } else if (this.originalFilePath) {
-      return `enjoy://${path.posix.join(
-        "library",
-        "audios",
-        this.getDataValue("md5") + this.extname
-      )}`;
-    } else {
-      return null;
-    }
+    const filePath = this.filePath;
+    return filePath ? pathToEnjoyUrl(filePath) : null;
   }
 
   @Column(DataType.VIRTUAL)

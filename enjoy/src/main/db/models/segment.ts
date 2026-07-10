@@ -21,7 +21,7 @@ import settings from "@main/settings";
 import path from "path";
 import { TimelineEntry } from "echogarden/dist/utilities/Timeline.d.js";
 import FfmpegWrapper from "@/main/ffmpeg";
-import { hashFile } from "@/main/utils";
+import { hashFile, pathToEnjoyUrl } from "@/main/utils";
 import fs from "fs-extra";
 import { v5 as uuidv5 } from "uuid";
 import { MIME_TYPES } from "@/constants";
@@ -92,11 +92,7 @@ export class Segment extends Model<Segment> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    return `enjoy://${path.posix.join(
-      "library",
-      "segments",
-      this.getDataValue("md5") + "." + OUTPUT_FORMAT
-    )}`;
+    return pathToEnjoyUrl(this.filePath);
   }
 
   get filePath(): string {

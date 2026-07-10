@@ -24,7 +24,7 @@ import {
 import fs from "fs-extra";
 import path from "path";
 import settings from "@main/settings";
-import { hashFile } from "@main/utils";
+import { hashFile, pathToEnjoyUrl } from "@main/utils";
 import log from "@main/logger";
 import { Client } from "@/api";
 import echogarden from "@main/echogarden";
@@ -131,13 +131,10 @@ export class Recording extends Model<Recording> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    if (!this.filePath) return;
+    const filePath = this.filePath;
+    if (!filePath) return;
 
-    return `enjoy://${path.posix.join(
-      "library",
-      "recordings",
-      this.getDataValue("filename")
-    )}`;
+    return pathToEnjoyUrl(filePath);
   }
 
   @Column(DataType.VIRTUAL)

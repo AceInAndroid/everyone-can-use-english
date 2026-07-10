@@ -1,9 +1,13 @@
 import { ipcMain, IpcMainEvent } from "electron";
 import { CacheObject } from "@main/db/models";
 import fs from "fs-extra";
-import path from "path";
 import db from "@main/db";
 import settings from "@main/settings";
+import {
+  isSafeFileName,
+  pathToEnjoyUrl,
+  resolvePathWithin,
+} from "@main/utils";
 
 class CacheObjectsHandler {
   private async get(event: IpcMainEvent, key: string) {
@@ -69,10 +73,17 @@ class CacheObjectsHandler {
     filename: string,
     data: ArrayBuffer
   ) {
-    const output = path.join(settings.cachePath(), filename);
+    if (!isSafeFileName(filename)) {
+      throw new Error("Invalid cache filename");
+    }
+
+    const output = resolvePathWithin(settings.cachePath(), filename);
+    if (!output) {
+      throw new Error("Invalid cache file path");
+    }
     fs.writeFileSync(output, Buffer.from(data));
 
-    return `enjoy://library/cache/${filename}`;
+    return pathToEnjoyUrl(output);
   }
 
   register() {

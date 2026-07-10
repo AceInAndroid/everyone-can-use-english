@@ -20,7 +20,7 @@ import path from "path";
 import settings from "@main/settings";
 import OpenAI, { type ClientOptions } from "openai";
 import { t } from "i18next";
-import { hashFile } from "@main/utils";
+import { hashFile, pathToEnjoyUrl } from "@main/utils";
 import { Audio, Document, Message, UserSetting } from "@main/db/models";
 import log from "@main/logger";
 import proxyAgent from "@main/proxy-agent";
@@ -113,11 +113,7 @@ export class Speech extends Model<Speech> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    return `enjoy://${path.posix.join(
-      "library",
-      "speeches",
-      this.getDataValue("md5") + this.getDataValue("extname")
-    )}`;
+    return pathToEnjoyUrl(this.filePath);
   }
 
   @Column(DataType.VIRTUAL)

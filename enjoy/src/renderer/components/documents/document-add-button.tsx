@@ -45,10 +45,15 @@ export const DocumentAddButton = () => {
     }
   };
 
-  const createFromLocalFile = async (path: string, source?: string) => {
+  const createFromLocalFile = async (
+    path: string,
+    source?: string,
+    title?: string
+  ) => {
     EnjoyApp.documents
       .create({
         uri: path,
+        title,
         config: {
           autoTranslate: false,
           autoNextSpeech: true,
@@ -87,10 +92,10 @@ export const DocumentAddButton = () => {
       const article = reader.parse();
 
       const file = await EnjoyApp.cacheObjects.writeFile(
-        `${doc.title}.html`,
+        `${crypto.randomUUID()}.html`,
         Buffer.from(article.content)
       );
-      createFromLocalFile(file, url);
+      createFromLocalFile(file, url, doc.title);
     } else if (state === "did-fail-load") {
       setSubmitting(false);
       toast.error(error || t("failedToLoadLink"));

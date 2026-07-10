@@ -140,21 +140,8 @@ export class Video extends Model<Video> {
 
   @Column(DataType.VIRTUAL)
   get src(): string {
-    if (this.compressedFilePath) {
-      return `enjoy://${path.posix.join(
-        "library",
-        "videos",
-        this.getDataValue("md5") + ".compressed.mp4"
-      )}`;
-    } else if (this.originalFilePath) {
-      return `enjoy://${path.posix.join(
-        "library",
-        "videos",
-        this.getDataValue("md5") + this.extname
-      )}`;
-    } else {
-      return null;
-    }
+    const filePath = this.filePath;
+    return filePath ? pathToEnjoyUrl(filePath) : null;
   }
 
   @Column(DataType.VIRTUAL)
@@ -354,7 +341,7 @@ export class Video extends Model<Video> {
     const finalFile = path.join(dir, filename);
     fs.moveSync(coverFile, finalFile, { overwrite: true });
     await this.update({
-      coverUrl: `enjoy://${path.posix.join("library", "videos", filename)}`,
+      coverUrl: pathToEnjoyUrl(finalFile),
     });
   }
 

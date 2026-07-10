@@ -1,8 +1,8 @@
 import { app, BrowserWindow, protocol, net } from "electron";
-import path from "path";
 import { pathToFileURL } from "node:url";
 import fs from "fs-extra";
 import settings from "@main/settings";
+import { resolveEnjoyUrlToPath } from "@main/utils";
 import log from "@main/logger";
 import mainWindow from "@main/window";
 import ElectronSquirrelStartup from "electron-squirrel-startup";
@@ -10,46 +10,6 @@ import contextMenu from "electron-context-menu";
 import { t } from "i18next";
 
 const logger = log.scope("main");
-
-const USER_DATA_LIBRARY_DIRECTORIES = new Set([
-  "audios",
-  "videos",
-  "recordings",
-  "speeches",
-  "segments",
-  "documents",
-]);
-
-const resolveEnjoyLibraryFile = (requestUrl: string) => {
-  try {
-    const url = new URL(requestUrl);
-    if (url.protocol !== "enjoy:" || url.hostname !== "library") {
-      return null;
-    }
-
-    const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, "");
-    if (!relativePath) return null;
-
-    const [topLevelDirectory] = relativePath.split("/");
-    const root = USER_DATA_LIBRARY_DIRECTORIES.has(topLevelDirectory)
-      ? settings.userDataPath()
-      : settings.libraryPath();
-    const filePath = path.resolve(root, relativePath);
-    const relativeToRoot = path.relative(root, filePath);
-
-    if (
-      relativeToRoot === ".." ||
-      relativeToRoot.startsWith(`..${path.sep}`) ||
-      path.isAbsolute(relativeToRoot)
-    ) {
-      return null;
-    }
-
-    return filePath;
-  } catch {
-    return null;
-  }
-};
 
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
@@ -143,7 +103,7 @@ app.on("ready", async () => {
   }
 
   protocol.handle("enjoy", async (request) => {
-    const filePath = resolveEnjoyLibraryFile(request.url);
+    const filePath = resolveEnjoyUrlToPath(request.url);
     if (!filePath) {
       return new Response("Invalid Enjoy library URL", { status: 400 });
     }
