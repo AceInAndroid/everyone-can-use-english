@@ -99,6 +99,22 @@ db.connect = async () => {
       throw new Error("Db path is not ready");
     }
 
+    const dbDirectory = path.dirname(dbPath);
+    try {
+      fs.ensureDirSync(dbDirectory);
+      fs.accessSync(
+        dbDirectory,
+        fs.constants.R_OK | fs.constants.W_OK
+      );
+      logger.info("Opening local database", dbPath);
+    } catch (error) {
+      throw new Error(
+        `Enjoy cannot read and write the library folder at ${dbDirectory}. ` +
+          "Check macOS Privacy & Security > Files and Folders, or choose a writable library location.",
+        { cause: error }
+      );
+    }
+
     const sequelize = new Sequelize({
       dialect: "sqlite",
       storage: dbPath,

@@ -521,7 +521,7 @@ ${log}
       speeches: path.join(settings.userDataPath(), "speeches"),
       recordings: path.join(settings.userDataPath(), "recordings"),
       waveforms: path.join(settings.libraryPath(), "waveforms"),
-      logs: path.join(settings.libraryPath(), "logs"),
+      logs: app.getPath("logs"),
       cache: settings.cachePath(),
     };
 

@@ -13,11 +13,14 @@ const config = {
     icon: "./assets/icon",
     name: "Enjoy",
     executableName: "enjoy",
+    appBundleId: "com.aceinandroid.enjoy",
     extendInfo: {
       NSMicrophoneUsageDescription:
         "Enjoy uses your microphone for pronunciation practice, dictation, and voice messages.",
       NSCameraUsageDescription:
         "Enjoy uses your camera only when you choose a camera-based learning feature.",
+      NSDocumentsFolderUsageDescription:
+        "Enjoy stores your local learning library, videos, subtitles, recordings, and database in the Documents folder.",
     },
     protocols: [
       {
