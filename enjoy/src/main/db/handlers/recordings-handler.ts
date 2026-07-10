@@ -174,7 +174,7 @@ class RecordingsHandler {
   private async stats(
     event: IpcMainEvent,
     options: { from: string; to: string }
-  ) {
+  ): Promise<Recording | []> {
     const { from, to } = options;
     const where: WhereOptions = {};
     if (from && to) {
@@ -183,25 +183,25 @@ class RecordingsHandler {
       };
     }
 
-    return Recording.findOne({
-      attributes: [
-        [Sequelize.fn("count", Sequelize.col("id")), "count"],
-        [Sequelize.fn("SUM", Sequelize.col("recording.duration")), "duration"],
-      ],
-      where,
-    })
-      .then((stats) => {
-        if (!stats) {
-          return [];
-        }
-        return stats.toJSON();
-      })
-      .catch((err) => {
-        event.sender.send("on-notification", {
-          type: "error",
-          message: err.message,
-        });
+    try {
+      const stats = await Recording.findOne({
+        attributes: [
+          [Sequelize.fn("count", Sequelize.col("id")), "count"],
+          [
+            Sequelize.fn("SUM", Sequelize.col("recording.duration")),
+            "duration",
+          ],
+        ],
+        where,
       });
+      return stats?.toJSON() ?? [];
+    } catch (err) {
+      event.sender.send("on-notification", {
+        type: "error",
+        message: err.message,
+      });
+      return [];
+    }
   }
 
   private async groupByDate(

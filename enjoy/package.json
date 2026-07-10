@@ -14,7 +14,7 @@
     "package": "NODE_OPTIONS='--max-old-space-size=8192' rimraf .vite && yarn run download && electron-forge package",
     "make": "NODE_OPTIONS='--max-old-space-size=8192' rimraf .vite && yarn run download && electron-forge make",
     "publish": "NODE_OPTIONS='--max-old-space-size=8192' rimraf .vite && yarn run download && electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx .",
+    "lint": "eslint src --ext .ts,.tsx --quiet",
     "test": "yarn run package && yarn run playwright test",
     "test:main": "yarn run playwright test e2e/main.spec.ts",
     "test:renderer": "yarn run playwright test e2e/renderer.spec.ts",

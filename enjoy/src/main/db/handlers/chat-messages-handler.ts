@@ -8,6 +8,9 @@ import { ChatMessageStateEnum } from "@/types/enums";
 
 const logger = log.scope("db/handlers/chats-handler");
 
+const bufferToArrayBuffer = (buffer: Buffer): ArrayBuffer =>
+  Uint8Array.from(buffer).buffer;
+
 class ChatMessagesHandler {
   private async findAll(
     _event: IpcMainEvent,
@@ -64,7 +67,7 @@ class ChatMessagesHandler {
         const recording = await Recording.createFromBlob(
           {
             type: "audio/wav",
-            arrayBuffer: blob,
+            arrayBuffer: bufferToArrayBuffer(blob),
           },
           {
             targetType: "ChatMessage",
@@ -113,7 +116,7 @@ class ChatMessagesHandler {
         await Recording.createFromBlob(
           {
             type: "audio/wav",
-            arrayBuffer: blob,
+            arrayBuffer: bufferToArrayBuffer(blob),
           },
           {
             targetType: "ChatMessage",
