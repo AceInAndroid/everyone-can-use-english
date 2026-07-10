@@ -13,6 +13,12 @@ const config = {
     icon: "./assets/icon",
     name: "Enjoy",
     executableName: "enjoy",
+    extendInfo: {
+      NSMicrophoneUsageDescription:
+        "Enjoy uses your microphone for pronunciation practice, dictation, and voice messages.",
+      NSCameraUsageDescription:
+        "Enjoy uses your camera only when you choose a camera-based learning feature.",
+    },
     protocols: [
       {
         name: "Enjoy",

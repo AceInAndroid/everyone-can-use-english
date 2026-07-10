@@ -1,5 +1,6 @@
 import { app, BrowserWindow, protocol, net } from "electron";
 import path from "path";
+import { pathToFileURL } from "node:url";
 import fs from "fs-extra";
 import settings from "@main/settings";
 import log from "@main/logger";
@@ -9,6 +10,46 @@ import contextMenu from "electron-context-menu";
 import { t } from "i18next";
 
 const logger = log.scope("main");
+
+const USER_DATA_LIBRARY_DIRECTORIES = new Set([
+  "audios",
+  "videos",
+  "recordings",
+  "speeches",
+  "segments",
+  "documents",
+]);
+
+const resolveEnjoyLibraryFile = (requestUrl: string) => {
+  try {
+    const url = new URL(requestUrl);
+    if (url.protocol !== "enjoy:" || url.hostname !== "library") {
+      return null;
+    }
+
+    const relativePath = decodeURIComponent(url.pathname).replace(/^\/+/, "");
+    if (!relativePath) return null;
+
+    const [topLevelDirectory] = relativePath.split("/");
+    const root = USER_DATA_LIBRARY_DIRECTORIES.has(topLevelDirectory)
+      ? settings.userDataPath()
+      : settings.libraryPath();
+    const filePath = path.resolve(root, relativePath);
+    const relativeToRoot = path.relative(root, filePath);
+
+    if (
+      relativeToRoot === ".." ||
+      relativeToRoot.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relativeToRoot)
+    ) {
+      return null;
+    }
+
+    return filePath;
+  } catch {
+    return null;
+  }
+};
 
 app.commandLine.appendSwitch("enable-features", "SharedArrayBuffer");
 
@@ -101,21 +142,26 @@ app.on("ready", async () => {
       .catch((err) => console.log("An error occurred: ", err));
   }
 
-  protocol.handle("enjoy", (request) => {
-    let url = request.url.replace("enjoy://", "");
-    if (
-      url.match(
-        /library\/(audios|videos|recordings|speeches|segments|documents)/g
-      )
-    ) {
-      url = url.replace("library/", "");
-      url = path.join(settings.userDataPath(), url);
-    } else if (url.startsWith("library")) {
-      url = url.replace("library/", "");
-      url = path.join(settings.libraryPath(), url);
+  protocol.handle("enjoy", async (request) => {
+    const filePath = resolveEnjoyLibraryFile(request.url);
+    if (!filePath) {
+      return new Response("Invalid Enjoy library URL", { status: 400 });
     }
 
-    return net.fetch(`file:///${url}`);
+    try {
+      const stats = await fs.stat(filePath);
+      if (!stats.isFile()) {
+        return new Response("Enjoy library file not found", { status: 404 });
+      }
+
+      return net.fetch(pathToFileURL(filePath).toString(), {
+        headers: request.headers,
+        bypassCustomProtocolHandlers: true,
+      });
+    } catch (error) {
+      logger.warn("Failed to read Enjoy library file", filePath, error);
+      return new Response("Enjoy library file not found", { status: 404 });
+    }
   });
 
   mainWindow.init();

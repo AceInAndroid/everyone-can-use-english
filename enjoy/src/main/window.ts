@@ -609,6 +609,23 @@ ${log}
     useContentSize: true,
   });
 
+  const mainSession = mainWindow.webContents.session;
+  const isMainWindowMediaRequest = (
+    webContents: Electron.WebContents | null,
+    permission: string
+  ) => permission === "media" && webContents === mainWindow.webContents;
+
+  // macOS TCC grants OS-level access, but Chromium still checks the Electron
+  // session before getUserMedia can open the microphone.
+  mainSession.setPermissionCheckHandler((webContents, permission) => {
+    return isMainWindowMediaRequest(webContents, permission);
+  });
+  mainSession.setPermissionRequestHandler(
+    (webContents, permission, callback) => {
+      callback(isMainWindowMediaRequest(webContents, permission));
+    }
+  );
+
   mainWindow.on("ready-to-show", () => {
     mainWindow.show();
   });
